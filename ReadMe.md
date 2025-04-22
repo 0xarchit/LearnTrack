@@ -2,6 +2,16 @@
 
 ---
 
+## Screenshots
+
+![Landing Page](assets/landingPage.png)
+![Admin Panel](assets/adminPanel.png)
+![Faculty Panel](assets/facultyPanel.png)
+![Student Panel](assets/studentPanel.png)
+![Backend (FastAPI Swagger UI)](assets/backend.png)
+
+---
+
 ## Problem Statement
 
 > DBMS SQLite College Project

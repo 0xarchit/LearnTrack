@@ -91,6 +91,7 @@ function App() {
               <Route path="/faculty/grade" element={<GradeAssignments />} />
               <Route path="/faculty/materials" element={<ManageMaterials />} />
               <Route path="/faculty/new-assignment" element={<NewAssignment />} />
+              <Route path="/faculty/notifications" element={<ManageNotifications />} />
             </Route>
           </Route>
         </Route>

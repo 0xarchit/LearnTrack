@@ -55,6 +55,7 @@ const MainLayout: React.FC = () => {
       { name: 'Grade Assignments', to: '/faculty/grade', icon: <CheckCircle size={20} /> },
       { name: 'Manage Materials', to: '/faculty/materials', icon: <FileText size={20} /> },
       { name: 'New Assignment', to: '/faculty/new-assignment', icon: <Plus size={20} /> },
+      { name: 'Notifications', to: '/faculty/notifications', icon: <Bell size={20} /> },
     ];
   } else {
     // Student links
