@@ -16,7 +16,8 @@ import {
   Moon,
   ChevronDown,
   Bell,
-  Users
+  Users,
+  CheckCircle
 } from 'lucide-react';
 
 const MainLayout: React.FC = () => {
@@ -47,7 +48,14 @@ const MainLayout: React.FC = () => {
       { name: 'Reports', to: '/admin/reports', icon: <BarChart3 size={20} /> },
       { name: 'Notifications', to: '/admin/notifications', icon: <Bell size={20} /> },
     ];
+  } else if (userRole === 'faculty') {
+    navigationLinks = [
+      { name: 'Faculty Panel', to: '/faculty', icon: <User size={20} /> },
+      { name: 'Grade Assignments', to: '/faculty/grade', icon: <CheckCircle size={20} /> },
+      { name: 'Manage Materials', to: '/faculty/materials', icon: <FileText size={20} /> },
+    ];
   } else {
+    // Student links
     navigationLinks = [
       { name: 'Dashboard', to: '/dashboard', icon: <Home size={20} /> },
       { name: 'Courses', to: '/courses', icon: <BookOpen size={20} /> },
@@ -55,9 +63,6 @@ const MainLayout: React.FC = () => {
       { name: 'Study Materials', to: '/materials', icon: <BookMarked size={20} /> },
       { name: 'Grades', to: '/grades', icon: <BarChart3 size={20} /> },
     ];
-    if (userRole === 'faculty') {
-      navigationLinks.push({ name: 'Faculty Panel', to: '/faculty', icon: <User size={20} /> });
-    }
   }
 
   // fetch notifications for this userRole

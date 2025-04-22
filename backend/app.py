@@ -1,5 +1,6 @@
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from typing import List, Optional
 from pydantic import BaseModel
 from datetime import datetime
@@ -100,7 +101,27 @@ def init_db():
         c.execute('ALTER TABLE courses ADD COLUMN duration TEXT DEFAULT ""')
     except sqlite3.OperationalError:
         pass
+    # add instructor_id field to courses for foreign key linking to users
+    try:
+        c.execute('ALTER TABLE courses ADD COLUMN instructor_id INTEGER')
+    except sqlite3.OperationalError:
+        pass
+    # migrate existing instructor names to instructor_id
+    try:
+        rows = c.execute('SELECT id, instructor FROM courses').fetchall()
+        for row in rows:
+            instr = row['instructor']
+            if instr:
+                user_row = conn.execute('SELECT id FROM users WHERE name = ?', (instr,)).fetchone()
+                instr_id = user_row['id'] if user_row else None
+                c.execute('UPDATE courses SET instructor_id = ? WHERE id = ?', (instr_id, row['id']))
+    except Exception:
+        pass
     conn.close()
+
+# create uploads directory
+UPLOAD_DIR = os.path.join(BASE_DIR, 'uploads')
+os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 app = FastAPI()
 app.add_middleware(
@@ -109,6 +130,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# serve static uploaded files
+app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
 
 # Models
 class UserIn(BaseModel):
@@ -153,7 +177,7 @@ class PasswordUpdate(BaseModel):
 
 class CourseIn(BaseModel):
     title: str
-    instructor: str
+    instructor_id: int
     description: Optional[str] = ''
     status: Optional[str] = 'pending'
     duration: str
@@ -161,6 +185,7 @@ class CourseIn(BaseModel):
 class CourseOut(BaseModel):
     id: int
     title: str
+    instructor_id: int
     instructor: str
     description: Optional[str]
     status: str
@@ -169,7 +194,7 @@ class CourseOut(BaseModel):
 
 class CourseUpdate(BaseModel):
     title: Optional[str] = None
-    instructor: Optional[str] = None
+    instructor_id: Optional[int] = None
     description: Optional[str] = None
     status: Optional[str] = None
     duration: Optional[str] = None
@@ -198,6 +223,20 @@ from typing import List
 class Enrollment(BaseModel):
     user_id: int
     course_id: int
+
+# Material models
+class MaterialIn(BaseModel):
+    title: str
+    course_id: int
+    type: str
+    url: str
+
+class MaterialOut(BaseModel):
+    id: int
+    title: str
+    course_id: int
+    type: str
+    url: str
 
 @app.on_event("startup")
 def on_startup():
@@ -241,9 +280,16 @@ def login(login: LoginIn):
 def get_courses():
     conn = get_db_connection()
     rows = conn.execute('''
-        SELECT c.id, c.title, c.instructor, c.description, c.status, c.duration,
+        SELECT c.id,
+               c.title,
+               c.instructor_id,
+               u.name AS instructor,
+               c.description,
+               c.status,
+               c.duration,
                COUNT(e.user_id) AS students
         FROM courses c
+        LEFT JOIN users u ON u.id = c.instructor_id
         LEFT JOIN enrollments e ON e.course_id = c.id
         GROUP BY c.id
     ''').fetchall()
@@ -254,9 +300,17 @@ def get_courses():
 def get_course(course_id: int):
     conn = get_db_connection()
     row = conn.execute('''
-        SELECT c.id, c.title, c.instructor, c.description, c.status, c.duration,
+        SELECT c.id,
+               c.title,
+               c.instructor_id,
+               u.name AS instructor,
+               c.description,
+               c.status,
+               c.duration,
                (SELECT COUNT(*) FROM enrollments e WHERE e.course_id = ?) AS students
-        FROM courses c WHERE c.id = ?
+        FROM courses c
+        LEFT JOIN users u ON u.id = c.instructor_id
+        WHERE c.id = ?
     ''', (course_id, course_id)).fetchone()
     conn.close()
     if not row:
@@ -272,6 +326,40 @@ def get_assignments():
 def get_materials():
     conn = get_db_connection(); rows = conn.execute('SELECT * FROM materials').fetchall(); conn.close()
     return [dict(r) for r in rows]
+
+@app.post("/api/materials", response_model=MaterialOut, status_code=201)
+async def create_material(
+    title: str = Form(...),
+    course_id: int = Form(...),
+    type: str = Form(...),
+    file: UploadFile = File(...)
+):
+    # save uploaded file to disk
+    file_location = os.path.join(UPLOAD_DIR, file.filename)
+    contents = await file.read()
+    with open(file_location, "wb") as f:
+        f.write(contents)
+    url = f"/uploads/{file.filename}"
+    # store record in database
+    conn = get_db_connection(); c = conn.cursor()
+    c.execute(
+        'INSERT INTO materials (title, course_id, type, url) VALUES (?, ?, ?, ?)',
+        (title, course_id, type, url)
+    )
+    conn.commit()
+    material_id = c.lastrowid
+    row = c.execute(
+        'SELECT id, title, course_id, type, url FROM materials WHERE id = ?', (material_id,)
+    ).fetchone()
+    conn.close()
+    return dict(row)
+
+@app.delete("/api/materials/{material_id}")
+def delete_material(material_id: int):
+    conn = get_db_connection(); c = conn.cursor()
+    c.execute('DELETE FROM materials WHERE id = ?', (material_id,))
+    conn.commit(); conn.close()
+    return {"success": True}
 
 @app.get("/api/grades")
 def get_grades(user_id: int = Query(...)):
@@ -362,16 +450,18 @@ def approve_course_request(course_id: int, status_update: StatusUpdate):
 def create_course(course: CourseIn):
     conn = get_db_connection(); c = conn.cursor()
     c.execute(
-        'INSERT INTO courses (title, instructor, description, status, duration) VALUES (?, ?, ?, ?, ?)',
-        (course.title, course.instructor, course.description, course.status, course.duration)
+        'INSERT INTO courses (title, instructor_id, description, status, duration) VALUES (?, ?, ?, ?, ?)',
+        (course.title, course.instructor_id, course.description, course.status, course.duration)
     )
     conn.commit()
     course_id = c.lastrowid
     row = conn.execute('''
-        SELECT c.id, c.title, c.instructor, c.description, c.status, c.duration,
+        SELECT c.id, c.title, c.instructor_id, u.name AS instructor, c.description, c.status, c.duration,
                (SELECT COUNT(*) FROM enrollments e WHERE e.course_id = c.id) AS students
-        FROM courses c WHERE c.id = ?
-    ''', (course_id)).fetchone()
+        FROM courses c
+        LEFT JOIN users u ON u.id = c.instructor_id
+        WHERE c.id = ?
+    ''', (course_id,)).fetchone()
     conn.close()
     return dict(row)
 
@@ -383,21 +473,23 @@ def update_course(course_id: int, data: CourseUpdate):
         conn.close(); raise HTTPException(status_code=404, detail="Course not found")
     updated = {
         'title': data.title or existing['title'],
-        'instructor': data.instructor or existing['instructor'],
+        'instructor_id': data.instructor_id or existing['instructor_id'],
         'description': data.description if data.description is not None else existing['description'],
         'status': data.status or existing['status'],
         'duration': data.duration if data.duration is not None else existing['duration'],
     }
     c.execute(
-        'UPDATE courses SET title=?, instructor=?, description=?, status=?, duration=? WHERE id = ?',
-        (updated['title'], updated['instructor'], updated['description'], updated['status'], updated['duration'], course_id)
+        'UPDATE courses SET title=?, instructor_id=?, description=?, status=?, duration=? WHERE id = ?',
+        (updated['title'], updated['instructor_id'], updated['description'], updated['status'], updated['duration'], course_id)
     )
     conn.commit()
     row = c.execute('''
-        SELECT c.id, c.title, c.instructor, c.description, c.status, c.duration,
+        SELECT c.id, c.title, c.instructor_id, u.name AS instructor, c.description, c.status, c.duration,
                (SELECT COUNT(*) FROM enrollments e WHERE e.course_id = c.id) AS students
-        FROM courses c WHERE c.id = ?
-    ''', (course_id)).fetchone()
+        FROM courses c
+        LEFT JOIN users u ON u.id = c.instructor_id
+        WHERE c.id = ?
+    ''', (course_id,)).fetchone()
     conn.close()
     return dict(row)
 

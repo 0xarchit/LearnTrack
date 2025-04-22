@@ -9,6 +9,9 @@ const ManageCourses = () => {
   const [courses, setCourses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [faculties, setFaculties] = useState<any[]>([]);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [newCourse, setNewCourse] = useState({ title: '', instructor_id: '', description: '', status: 'pending', duration: '' });
 
   useEffect(() => {
     fetch(`${API_URL}/api/courses`)
@@ -18,22 +21,28 @@ const ManageCourses = () => {
       .finally(() => setLoading(false));
   }, []);
 
-  const handleAddCourse = async () => {
-    const title = prompt('Course Title:');
-    const instructor = prompt('Instructor:');
-    const description = prompt('Description:') || '';
-    const status = prompt('Status (pending|approved|rejected):', 'pending');
-    const duration = prompt('Duration (e.g., 10h 30m):') || '';
-    if (title && instructor && status) {
+  useEffect(() => {
+    fetch(`${API_URL}/api/users`)
+      .then(res => res.json())
+      .then(users => setFaculties(users.filter((u: any) => u.role === 'faculty')))
+      .catch(() => {});
+  }, []);
+
+  const handleCreateCourse = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const { title, instructor_id, description, status, duration } = newCourse;
+    try {
       const res = await fetch(`${API_URL}/api/courses`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, instructor, description, status, duration })
+        body: JSON.stringify({ title, instructor_id: Number(instructor_id), description, status, duration })
       });
-      if (res.ok) {
-        const newCourse = await res.json();
-        setCourses(prev => [...prev, newCourse]);
-      }
-      else alert('Failed to add course');
+      if (!res.ok) throw new Error('Failed to add course');
+      const created = await res.json();
+      setCourses(prev => [...prev, created]);
+      setShowAddForm(false);
+      setNewCourse({ title: '', instructor_id: '', description: '', status: 'pending', duration: '' });
+    } catch (err: any) {
+      alert(err.message);
     }
   };
 
@@ -70,8 +79,43 @@ const ManageCourses = () => {
     >
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Manage Courses</h1>
-        <Button leftIcon={<Plus size={18} />} onClick={handleAddCourse}>Add New Course</Button>
+        <Button leftIcon={<Plus size={18} />} onClick={() => setShowAddForm(prev => !prev)}>
+          {showAddForm ? 'Cancel' : 'Add New Course'}
+        </Button>
       </div>
+      {showAddForm && (
+        <form onSubmit={handleCreateCourse} className="mb-6 space-y-4 p-4 bg-white dark:bg-gray-800 rounded">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <input required placeholder="Course Title" value={newCourse.title}
+              onChange={e => setNewCourse({ ...newCourse, title: e.target.value })}
+              className="w-full p-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded" />
+            <select required value={newCourse.instructor_id}
+              title='Select Instructor'
+              onChange={e => setNewCourse({ ...newCourse, instructor_id: e.target.value })}
+              className="w-full p-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded">
+              <option value="" disabled>Select Instructor</option>
+              {faculties.map(f => (
+                <option key={f.id} value={f.id}>{f.name}</option>
+              ))}
+            </select>
+            <input placeholder="Description" value={newCourse.description}
+              onChange={e => setNewCourse({ ...newCourse, description: e.target.value })}
+              className="w-full p-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded" />
+            <input placeholder="Duration (e.g., 10h 30m)" value={newCourse.duration}
+              onChange={e => setNewCourse({ ...newCourse, duration: e.target.value })}
+              className="w-full p-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded" />
+            <select value={newCourse.status}
+              title='Select Status'
+              onChange={e => setNewCourse({ ...newCourse, status: e.target.value })}
+              className="w-full p-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded">
+              <option value="pending">Pending</option>
+              <option value="approved">Approved</option>
+              <option value="rejected">Rejected</option>
+            </select>
+          </div>
+          <Button type="submit">Save Course</Button>
+        </form>
+      )}
 
       <Card className="overflow-hidden">
         <div className="overflow-x-auto">
