@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import Card from '../../components/ui/Card';
+import { Trash2 } from 'lucide-react';
 
 export default function GradeAssignments() {
   const [assignments, setAssignments] = useState<any[]>([]);
@@ -51,6 +52,21 @@ export default function GradeAssignments() {
       .catch(err => setSubError(err.message));
   };
 
+  const handleDeleteAssignment = async (assignmentId: number) => {
+    if (!confirm('Delete this assignment?')) return;
+    try {
+      const res = await fetch(`${API_URL}/api/assignments/${assignmentId}`, { method: 'DELETE' });
+      if (res.ok) {
+        setAssignments(prev => prev.filter(a => a.id !== assignmentId));
+        if (selectedAssignmentId === assignmentId) setSelectedAssignmentId(null);
+      } else {
+        alert('Failed to delete assignment');
+      }
+    } catch (err: any) {
+      alert(err.message);
+    }
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -81,6 +97,9 @@ export default function GradeAssignments() {
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                     <button onClick={() => handleViewSubmissions(assignment.id)} className="text-primary-600 hover:underline">
                       {selectedAssignmentId === assignment.id ? 'Hide Submissions' : 'View Submissions'}
+                    </button>
+                    <button title='del' onClick={() => handleDeleteAssignment(assignment.id)} className="text-error-600 hover:underline ml-4">
+                      <Trash2 size={16} />
                     </button>
                   </td>
                 </tr>

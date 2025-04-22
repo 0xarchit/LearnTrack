@@ -407,6 +407,13 @@ def get_assignment(assignment_id: int):
         raise HTTPException(status_code=404, detail="Assignment not found")
     return dict(row)
 
+@app.delete("/api/assignments/{assignment_id}")
+def delete_assignment(assignment_id: int):
+    conn = get_db_connection(); c = conn.cursor()
+    c.execute('DELETE FROM assignments WHERE id = ?', (assignment_id,))
+    conn.commit(); conn.close()
+    return {"success": True}
+
 @app.get("/api/materials")
 def get_materials():
     conn = get_db_connection(); rows = conn.execute('SELECT * FROM materials').fetchall(); conn.close()
