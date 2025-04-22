@@ -118,7 +118,7 @@ uvicorn app:app --host 0.0.0.0 --port 5000 --reload
 cd LearnTrack
 pnpm dev
 ```
-Open http://localhost:3000 in your browser.
+> Open http://localhost:5173 in your browser.
 
 ## Frontend
 
@@ -185,6 +185,7 @@ DELETE /api/notifications/{id}
 GET    /api/reports/performance
 GET    /api/reports/metrics
 ```
+> Run backend and go http://localhost:5000/docs for checking endpoints
 
 ## Database
 
