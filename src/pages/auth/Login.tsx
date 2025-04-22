@@ -11,6 +11,7 @@ import { useNotification } from '../../contexts/NotificationContext';
 interface LoginFormData {
   email: string;
   password: string;
+  role: string;
 }
 
 const Login: React.FC = () => {
@@ -27,12 +28,12 @@ const Login: React.FC = () => {
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<LoginFormData>();
+  } = useForm<LoginFormData>({ defaultValues: { role: 'student' } });
 
   const onSubmit = async (data: LoginFormData) => {
     setIsLoading(true);
     try {
-      await login(data.email, data.password);
+      await login(data.email, data.password, data.role);
       addNotification('success', 'Login successful! Welcome back.');
       navigate(from, { replace: true });
     } catch (error) {
@@ -81,6 +82,20 @@ const Login: React.FC = () => {
             },
           })}
         />
+
+        {/* Role Selection */}
+        <div>
+          <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-1">Role</label>
+          <select
+            id="role"
+            {...register('role', { required: true })}
+            className="w-full border rounded p-2"
+          >
+            <option value="student">Student</option>
+            <option value="faculty">Faculty</option>
+            <option value="admin">Admin</option>
+          </select>
+        </div>
 
         <div className="flex items-center justify-between">
           <div className="flex items-center">

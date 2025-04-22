@@ -55,7 +55,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
               ${fullWidth ? 'w-full' : ''}
               ${className}
             `}
-            aria-invalid={error ? 'true' : 'false'}
+            {...(error ? { "aria-invalid": "true" } : {})}
             {...props}
           />
           {rightIcon && (

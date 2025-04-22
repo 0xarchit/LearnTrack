@@ -5,6 +5,7 @@ from typing import List, Optional
 from pydantic import BaseModel
 from datetime import datetime
 import os, sqlite3
+from passlib.context import CryptContext
 
 # Ensure db path is absolute
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -117,6 +118,11 @@ def init_db():
                 c.execute('UPDATE courses SET instructor_id = ? WHERE id = ?', (instr_id, row['id']))
     except Exception:
         pass
+    # add thumbnail_url column to courses
+    try:
+        c.execute('ALTER TABLE courses ADD COLUMN thumbnail_url TEXT DEFAULT ""')
+    except sqlite3.OperationalError:
+        pass
     conn.close()
 
 # create uploads directory
@@ -124,6 +130,8 @@ UPLOAD_DIR = os.path.join(BASE_DIR, 'uploads')
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 app = FastAPI()
+# add password hashing context
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -158,6 +166,7 @@ class UserOut(BaseModel):
 class LoginIn(BaseModel):
     email: str
     password: str
+    role: str
 
 class UpdateUser(BaseModel):
     name: Optional[str] = None
@@ -190,6 +199,7 @@ class CourseOut(BaseModel):
     description: Optional[str]
     status: str
     duration: str
+    thumbnail_url: Optional[str] = None
     students: int
 
 class CourseUpdate(BaseModel):
@@ -247,9 +257,11 @@ def on_startup():
 def register(user: UserIn):
     conn = get_db_connection(); c = conn.cursor()
     try:
+        # new users can only register as student; hash password
+        hashed = pwd_context.hash(user.password)
         c.execute(
             'INSERT INTO users (name, email, password, role, phone, address, department, joinDate) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-            (user.name, user.email, user.password, user.role, user.phone, user.address, user.department, user.joinDate)
+            (user.name, user.email, hashed, 'student', user.phone, user.address, user.department, user.joinDate)
         )
         conn.commit()
         user_id = c.lastrowid
@@ -265,15 +277,18 @@ def register(user: UserIn):
 @app.post("/api/login", response_model=UserOut)
 def login(login: LoginIn):
     conn = get_db_connection(); c = conn.cursor()
+    # fetch user by email and role
     c.execute(
-        'SELECT id, name, email, role, phone, address, department, joinDate FROM users WHERE email = ? AND password = ?',
-        (login.email, login.password)
+        'SELECT id, name, email, role, phone, address, department, joinDate, password FROM users WHERE email = ? AND role = ?',
+        (login.email, login.role)
     )
     row = c.fetchone()
     conn.close()
-    if row:
-        return dict(row)
-    raise HTTPException(status_code=401, detail="Invalid credentials")
+    if not row or not pwd_context.verify(login.password, row['password']):
+        raise HTTPException(status_code=401, detail="Invalid credentials or role")
+    data = dict(row)
+    data.pop('password', None)
+    return data
 
 # Data endpoints
 @app.get("/api/courses")
@@ -281,6 +296,7 @@ def get_courses():
     conn = get_db_connection()
     rows = conn.execute('''
         SELECT c.id,
+               c.thumbnail_url,
                c.title,
                c.instructor_id,
                u.name AS instructor,
@@ -301,6 +317,7 @@ def get_course(course_id: int):
     conn = get_db_connection()
     row = conn.execute('''
         SELECT c.id,
+               c.thumbnail_url,
                c.title,
                c.instructor_id,
                u.name AS instructor,
@@ -376,9 +393,11 @@ def get_users():
 def create_user(user: UserIn):
     conn = get_db_connection(); c = conn.cursor()
     try:
+        # admin-created user; hash password
+        hashed = pwd_context.hash(user.password)
         c.execute(
             'INSERT INTO users (name, email, password, role, phone, address, department, joinDate) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-            (user.name, user.email, user.password, user.role, user.phone, user.address, user.department, user.joinDate)
+            (user.name, user.email, hashed, user.role, user.phone, user.address, user.department, user.joinDate)
         )
         conn.commit()
         user_id = c.lastrowid
@@ -417,12 +436,15 @@ def update_user(user_id: int, user: UpdateUser):
 @app.put("/api/users/{user_id}/password")
 def change_password(user_id: int, pwd: PasswordUpdate):
     conn = get_db_connection(); c = conn.cursor()
+    # verify current password
     row = c.execute('SELECT password FROM users WHERE id = ?', (user_id,)).fetchone()
     if not row:
         raise HTTPException(status_code=404, detail="User not found")
-    if pwd.current_password != row['password']:
+    if not pwd_context.verify(pwd.current_password, row['password']):
         raise HTTPException(status_code=400, detail="Current password incorrect")
-    c.execute('UPDATE users SET password = ? WHERE id = ?', (pwd.new_password, user_id))
+    # update with hashed new password
+    new_hashed = pwd_context.hash(pwd.new_password)
+    c.execute('UPDATE users SET password = ? WHERE id = ?', (new_hashed, user_id))
     conn.commit(); conn.close()
     return {"success": True}
 
@@ -447,16 +469,31 @@ def approve_course_request(course_id: int, status_update: StatusUpdate):
     return {"id": course_id, "status": status_update.status}
 
 @app.post("/api/courses", response_model=CourseOut, status_code=201)
-def create_course(course: CourseIn):
+async def create_course(
+    title: str = Form(...),
+    instructor_id: int = Form(...),
+    description: Optional[str] = Form(''),
+    status: str = Form('pending'),
+    duration: str = Form(''),
+    thumbnail: UploadFile = File(None)
+):
+    # save thumbnail if provided
+    thumb_url = ''
+    if thumbnail:
+        thumb_path = os.path.join(UPLOAD_DIR, thumbnail.filename)
+        contents = await thumbnail.read()
+        with open(thumb_path, 'wb') as f:
+            f.write(contents)
+        thumb_url = f"/uploads/{thumbnail.filename}"
     conn = get_db_connection(); c = conn.cursor()
     c.execute(
-        'INSERT INTO courses (title, instructor_id, description, status, duration) VALUES (?, ?, ?, ?, ?)',
-        (course.title, course.instructor_id, course.description, course.status, course.duration)
+        'INSERT INTO courses (title, instructor_id, description, status, duration, thumbnail_url) VALUES (?, ?, ?, ?, ?, ?)',
+        (title, instructor_id, description, status, duration, thumb_url)
     )
     conn.commit()
     course_id = c.lastrowid
-    row = conn.execute('''
-        SELECT c.id, c.title, c.instructor_id, u.name AS instructor, c.description, c.status, c.duration,
+    row = c.execute('''
+        SELECT c.id, c.thumbnail_url, c.title, c.instructor_id, u.name AS instructor, c.description, c.status, c.duration,
                (SELECT COUNT(*) FROM enrollments e WHERE e.course_id = c.id) AS students
         FROM courses c
         LEFT JOIN users u ON u.id = c.instructor_id
@@ -466,25 +503,33 @@ def create_course(course: CourseIn):
     return dict(row)
 
 @app.put("/api/courses/{course_id}", response_model=CourseOut)
-def update_course(course_id: int, data: CourseUpdate):
+async def update_course(
+    course_id: int,
+    title: str = Form(...),
+    instructor_id: int = Form(...),
+    description: Optional[str] = Form(''),
+    status: str = Form('pending'),
+    duration: str = Form(''),
+    thumbnail: UploadFile = File(None)
+):
     conn = get_db_connection(); c = conn.cursor()
     existing = c.execute('SELECT * FROM courses WHERE id = ?', (course_id,)).fetchone()
     if not existing:
         conn.close(); raise HTTPException(status_code=404, detail="Course not found")
-    updated = {
-        'title': data.title or existing['title'],
-        'instructor_id': data.instructor_id or existing['instructor_id'],
-        'description': data.description if data.description is not None else existing['description'],
-        'status': data.status or existing['status'],
-        'duration': data.duration if data.duration is not None else existing['duration'],
-    }
+    thumb_url = existing['thumbnail_url'] or ''
+    if thumbnail:
+        thumb_path = os.path.join(UPLOAD_DIR, thumbnail.filename)
+        contents = await thumbnail.read()
+        with open(thumb_path, 'wb') as f:
+            f.write(contents)
+        thumb_url = f"/uploads/{thumbnail.filename}"
     c.execute(
-        'UPDATE courses SET title=?, instructor_id=?, description=?, status=?, duration=? WHERE id = ?',
-        (updated['title'], updated['instructor_id'], updated['description'], updated['status'], updated['duration'], course_id)
+        'UPDATE courses SET title=?, instructor_id=?, description=?, status=?, duration=?, thumbnail_url=? WHERE id = ?',
+        (title, instructor_id, description, status, duration, thumb_url, course_id)
     )
     conn.commit()
     row = c.execute('''
-        SELECT c.id, c.title, c.instructor_id, u.name AS instructor, c.description, c.status, c.duration,
+        SELECT c.id, c.thumbnail_url, c.title, c.instructor_id, u.name AS instructor, c.description, c.status, c.duration,
                (SELECT COUNT(*) FROM enrollments e WHERE e.course_id = c.id) AS students
         FROM courses c
         LEFT JOIN users u ON u.id = c.instructor_id
@@ -519,6 +564,17 @@ def report_metrics():
         {'label': 'Student Satisfaction', 'value': '92%', 'change': '+3%'},
         {'label': 'Active Learning Hours', 'value': '2,456', 'change': '+12%'},
     ]
+
+@app.get("/api/courses/{course_id}/students", response_model=List[UserOut])
+def get_course_students(course_id: int):
+    conn = get_db_connection()
+    rows = conn.execute(
+        'SELECT u.id, u.name, u.email, u.role, u.phone, u.address, u.department, u.joinDate '
+        'FROM enrollments e JOIN users u ON e.user_id = u.id WHERE e.course_id = ?',
+        (course_id,)
+    ).fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
 
 # Enrollment endpoints
 @app.get("/api/enrollments")

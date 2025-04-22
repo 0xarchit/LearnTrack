@@ -3,6 +3,7 @@ import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import { Plus, Edit2, Trash2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import Input from '../../components/ui/Input';
 
 const ManageCourses = () => {
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -11,7 +12,9 @@ const ManageCourses = () => {
   const [error, setError] = useState<string | null>(null);
   const [faculties, setFaculties] = useState<any[]>([]);
   const [showAddForm, setShowAddForm] = useState(false);
-  const [newCourse, setNewCourse] = useState({ title: '', instructor_id: '', description: '', status: 'pending', duration: '' });
+  const [newCourse, setNewCourse] = useState({ title: '', instructor_id: '', description: '', status: 'pending', duration: '', thumbnail: null as File | null });
+  const [editCourseId, setEditCourseId] = useState<number | null>(null);
+  const [editCourseData, setEditCourseData] = useState({ title: '', instructor_id: '', description: '', status: 'pending', duration: '', thumbnail: null as File | null });
 
   useEffect(() => {
     fetch(`${API_URL}/api/courses`)
@@ -30,37 +33,63 @@ const ManageCourses = () => {
 
   const handleCreateCourse = async (e: React.FormEvent) => {
     e.preventDefault();
-    const { title, instructor_id, description, status, duration } = newCourse;
+    const { title, instructor_id, description, status, duration, thumbnail } = newCourse;
+    const formData = new FormData();
+    formData.append('title', title);
+    formData.append('instructor_id', instructor_id);
+    formData.append('description', description);
+    formData.append('status', status);
+    formData.append('duration', duration);
+    if (thumbnail) formData.append('thumbnail', thumbnail);
     try {
       const res = await fetch(`${API_URL}/api/courses`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, instructor_id: Number(instructor_id), description, status, duration })
+        method: 'POST',
+        body: formData
       });
       if (!res.ok) throw new Error('Failed to add course');
       const created = await res.json();
       setCourses(prev => [...prev, created]);
       setShowAddForm(false);
-      setNewCourse({ title: '', instructor_id: '', description: '', status: 'pending', duration: '' });
+      setNewCourse({ title: '', instructor_id: '', description: '', status: 'pending', duration: '', thumbnail: null });
     } catch (err: any) {
       alert(err.message);
     }
   };
 
-  const handleEditCourse = async (course: any) => {
-    const title = prompt('Course Title:', course.title);
-    const instructor = prompt('Instructor:', course.instructor);
-    const description = prompt('Description:', course.description || '');
-    const status = prompt('Status (pending|approved|rejected):', course.status);
-    const duration = prompt('Duration:', course.duration || '') || course.duration;
-    if (title && instructor && status) {
-      const res = await fetch(`${API_URL}/api/courses/${course.id}`, {
-        method: 'PUT', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, instructor, description, status, duration })
+  const handleEditCourse = (course: any) => {
+    setEditCourseId(course.id);
+    setEditCourseData({
+      title: course.title,
+      instructor_id: course.instructor_id.toString(),
+      description: course.description || '',
+      status: course.status,
+      duration: course.duration,
+      thumbnail: null
+    });
+  };
+
+  const handleUpdateCourse = async (e: React.FormEvent) => {
+    if (editCourseId === null) return;
+    e.preventDefault();
+    const { title, instructor_id, description, status, duration, thumbnail } = editCourseData;
+    const formData = new FormData();
+    formData.append('title', title);
+    formData.append('instructor_id', instructor_id);
+    formData.append('description', description);
+    formData.append('status', status);
+    formData.append('duration', duration);
+    if (thumbnail) formData.append('thumbnail', thumbnail);
+    try {
+      const res = await fetch(`${API_URL}/api/courses/${editCourseId}`, {
+        method: 'PUT',
+        body: formData
       });
-      if (res.ok) {
-        const updated = await res.json();
-        setCourses(prev => prev.map(c => c.id === updated.id ? updated : c));
-      } else alert('Failed to update course');
+      if (!res.ok) throw new Error('Failed to update course');
+      const updated = await res.json();
+      setCourses(prev => prev.map(c => c.id === updated.id ? updated : c));
+      setEditCourseId(null);
+    } catch (err: any) {
+      alert(err.message);
     }
   };
 
@@ -86,24 +115,30 @@ const ManageCourses = () => {
       {showAddForm && (
         <form onSubmit={handleCreateCourse} className="mb-6 space-y-4 p-4 bg-white dark:bg-gray-800 rounded">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <input required placeholder="Course Title" value={newCourse.title}
+            <Input
+              required
+              placeholder="Course Title"
+              value={newCourse.title}
               onChange={e => setNewCourse({ ...newCourse, title: e.target.value })}
-              className="w-full p-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded" />
-            <select required value={newCourse.instructor_id}
-              title='Select Instructor'
+            />
+            <select title='id' required value={newCourse.instructor_id}
               onChange={e => setNewCourse({ ...newCourse, instructor_id: e.target.value })}
-              className="w-full p-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded">
+              className="block w-full rounded-md bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-gray-100 p-2 focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
               <option value="" disabled>Select Instructor</option>
               {faculties.map(f => (
                 <option key={f.id} value={f.id}>{f.name}</option>
               ))}
             </select>
-            <input placeholder="Description" value={newCourse.description}
+            <Input
+              placeholder="Description"
+              value={newCourse.description}
               onChange={e => setNewCourse({ ...newCourse, description: e.target.value })}
-              className="w-full p-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded" />
-            <input placeholder="Duration (e.g., 10h 30m)" value={newCourse.duration}
+            />
+            <Input
+              placeholder="Duration (e.g., 10h 30m)"
+              value={newCourse.duration}
               onChange={e => setNewCourse({ ...newCourse, duration: e.target.value })}
-              className="w-full p-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded" />
+            />
             <select value={newCourse.status}
               title='Select Status'
               onChange={e => setNewCourse({ ...newCourse, status: e.target.value })}
@@ -112,8 +147,62 @@ const ManageCourses = () => {
               <option value="approved">Approved</option>
               <option value="rejected">Rejected</option>
             </select>
+            <input
+              title='Upload Thumbnail'
+              type="file"
+              accept="image/*"
+              onChange={e => setNewCourse({ ...newCourse, thumbnail: e.target.files?.[0] || null })}
+              className="block w-full rounded-md bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-gray-100 p-2"
+            />
           </div>
           <Button type="submit">Save Course</Button>
+        </form>
+      )}
+
+      {editCourseId !== null && (
+        <form onSubmit={handleUpdateCourse} className="mb-6 space-y-4 p-4 bg-white dark:bg-gray-800 rounded">
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Edit Course</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Input
+              required
+              placeholder="Course Title"
+              value={editCourseData.title}
+              onChange={e => setEditCourseData({ ...editCourseData, title: e.target.value })}
+            />
+            <select title='id' required value={editCourseData.instructor_id}
+              onChange={e => setEditCourseData({ ...editCourseData, instructor_id: e.target.value })}
+              className="block w-full rounded-md bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-gray-100 p-2 focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+              <option value="" disabled>Select Instructor</option>
+              {faculties.map(f => (
+                <option key={f.id} value={f.id}>{f.name}</option>
+              ))}
+            </select>
+            <Input
+              placeholder="Description"
+              value={editCourseData.description}
+              onChange={e => setEditCourseData({ ...editCourseData, description: e.target.value })}
+            />
+            <Input
+              placeholder="Duration"
+              value={editCourseData.duration}
+              onChange={e => setEditCourseData({ ...editCourseData, duration: e.target.value })}
+            />
+            <select title='Course Status' value={editCourseData.status}
+              onChange={e => setEditCourseData({ ...editCourseData, status: e.target.value })}
+              className="block w-full rounded-md bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-gray-100 p-2 focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+              <option value="pending">Pending</option>
+              <option value="approved">Approved</option>
+              <option value="rejected">Rejected</option>
+            </select>
+            <input title='thumbnail' type="file" accept="image/*"
+              onChange={e => setEditCourseData({ ...editCourseData, thumbnail: e.target.files?.[0] || null })}
+              className="block w-full rounded-md bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-gray-100 p-2"
+            />
+          </div>
+          <div className="flex space-x-2">
+            <Button type="submit">Update Course</Button>
+            <Button variant="ghost" onClick={() => setEditCourseId(null)}>Cancel</Button>
+          </div>
         </form>
       )}
 
@@ -122,6 +211,7 @@ const ManageCourses = () => {
           <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
             <thead className="bg-gray-50 dark:bg-gray-800">
               <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Thumbnail</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Course Title</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Instructor</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Description</th>
@@ -133,12 +223,17 @@ const ManageCourses = () => {
             </thead>
             <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
               {loading ? (
-                <tr><td colSpan={7} className="p-4 text-center">Loading...</td></tr>
+                <tr><td colSpan={8} className="p-4 text-center">Loading...</td></tr>
               ) : error ? (
-                <tr><td colSpan={7} className="p-4 text-center text-red-500">Error: {error}</td></tr>
+                <tr><td colSpan={8} className="p-4 text-center text-red-500">Error: {error}</td></tr>
               ) : (
                 courses.map((course) => (
                   <tr key={course.id}>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {course.thumbnail_url ? (
+                        <img src={course.thumbnail_url} alt={course.title} className="h-12 w-12 object-cover rounded" />
+                      ) : <div className="h-12 w-12 bg-gray-200 dark:bg-gray-700 rounded" />}
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
                       {course.title}
                     </td>

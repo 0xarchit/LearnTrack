@@ -18,7 +18,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   user: User | null;
   userRole: UserRole;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string, role: string) => Promise<void>;
   register: (name: string, email: string, password: string, role: UserRole) => Promise<void>;
   logout: () => void;
   initAuth: () => void;
@@ -50,10 +50,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, []);
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string, role: string) => {
+    // include role in login
     const res = await fetch(`${API_URL}/api/login`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ email, password, role }),
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Login failed');

@@ -1,4 +1,3 @@
-import React from 'react';
 import StudentStats from './StudentStats';
 import StudentCourseProgress from './StudentCourseProgress';
 import StudentAssignments from './StudentAssignments';

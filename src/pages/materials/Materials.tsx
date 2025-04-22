@@ -112,12 +112,8 @@ const Materials = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredMaterials.map((material) => (
               <Card key={material.id} className="overflow-hidden hover:shadow-lg transition-shadow duration-200">
-                <div className="h-40 overflow-hidden">
-                  <img 
-                    src={material.thumbnail} 
-                    alt={material.title} 
-                    className="w-full h-full object-cover"
-                  />
+                <div className="h-40 overflow-hidden flex items-center justify-center bg-gray-50 dark:bg-gray-800">
+                  <FileText size={48} className="text-gray-400" />
                 </div>
                 <div className="p-6">
                   <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{material.title}</h3>
@@ -132,9 +128,11 @@ const Materials = () => {
                       )}
                       <span className="ml-2 text-sm text-gray-500 dark:text-gray-400">{material.size}</span>
                     </div>
-                    <Button variant="ghost" size="sm">
-                      <Download size={18} />
-                    </Button>
+                    <a href={material.url} target="_blank" rel="noopener noreferrer" download title='download'>
+                      <Button variant="ghost" size="sm">
+                        <Download size={18} />
+                      </Button>
+                    </a>
                   </div>
                 </div>
               </Card>
@@ -188,9 +186,11 @@ const Materials = () => {
                         {material.lastUpdated}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <Button variant="ghost" size="sm">
-                          <Download size={16} />
-                        </Button>
+                        <a href={material.url} target="_blank" rel="noopener noreferrer" download title='download'>
+                          <Button variant="ghost" size="sm">
+                            <Download size={16} />
+                          </Button>
+                        </a>
                       </td>
                     </tr>
                   ))}

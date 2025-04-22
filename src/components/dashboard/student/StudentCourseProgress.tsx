@@ -1,4 +1,3 @@
-import React from 'react';
 import ChartCard from '../ChartCard';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 

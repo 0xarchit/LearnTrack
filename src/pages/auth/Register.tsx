@@ -11,7 +11,6 @@ const Register = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [role, setRole] = useState<'student' | 'faculty' | 'admin'>('student');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -27,7 +26,8 @@ const Register = () => {
     try {
       setError('');
       setLoading(true);
-      await register(name, email, password, role);
+      // only students can self-register
+      await register(name, email, password, 'student');
       navigate('/dashboard');
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to create account';
@@ -66,20 +66,6 @@ const Register = () => {
             onChange={(e) => setName(e.target.value)}
             required
           />
-          <div>
-            <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-1">Role</label>
-            <select
-              id="role"
-              name="role"
-              value={role}
-              onChange={(e) => setRole(e.target.value as any)}
-              className="w-full border rounded p-2"
-            >
-              <option value="student">Student</option>
-              <option value="faculty">Faculty</option>
-              <option value="admin">Admin</option>
-            </select>
-          </div>
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
               Email Address

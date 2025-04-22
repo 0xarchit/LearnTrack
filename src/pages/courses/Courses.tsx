@@ -88,6 +88,15 @@ const Courses = () => {
           {filteredCourses.map(course => (
             <Card key={course.id} className="overflow-hidden hover:shadow-lg transition-shadow duration-200">
               <div className="h-48 overflow-hidden">
+                {course.thumbnail_url ? (
+                  <img
+                    src={course.thumbnail_url}
+                    alt={course.title}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gray-200 dark:bg-gray-700" />
+                )}
               </div>
               <div className="p-6">
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{course.title}</h3>
