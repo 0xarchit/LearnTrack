@@ -1,60 +1,65 @@
-import React from 'react';
 import { Calendar, Clock } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import Card from '../../ui/Card';
 import Button from '../../ui/Button';
+import { useState, useEffect } from 'react';
+import { useAuth } from '../../../contexts/AuthContext';
 
 export default function StudentAssignments() {
-  const assignments = [
-    {
-      id: 1,
-      title: 'JavaScript Fundamentals',
-      course: 'Web Development',
-      dueDate: '2025-04-15',
-      timeLeft: '2 days',
-      status: 'pending'
-    },
-    {
-      id: 2,
-      title: 'Database Design',
-      course: 'Database Systems',
-      dueDate: '2025-04-18',
-      timeLeft: '5 days',
-      status: 'pending'
-    },
-    {
-      id: 3,
-      title: 'React Components',
-      course: 'Frontend Development',
-      dueDate: '2025-04-20',
-      timeLeft: '7 days',
-      status: 'pending'
-    }
-  ];
+  const { user } = useAuth();
+  const [assignments, setAssignments] = useState<any[]>([]);
+  const [enrolledCourses, setEnrolledCourses] = useState<number[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
+  useEffect(() => {
+    Promise.all([
+      fetch(`${API_URL}/api/assignments`).then(res => res.json()),
+      user ? fetch(`${API_URL}/api/enrollments?user_id=${user.id}`).then(res => res.json()) : Promise.resolve([])
+    ])
+      .then(([all, enrolled]: [any[], number[]]) => {
+        setAssignments(all);
+        setEnrolledCourses(enrolled);
+      })
+      .catch(err => setError(err.message))
+      .finally(() => setLoading(false));
+  }, [user]);
+
+  if (loading) return <p>Loading assignments...</p>;
+  if (error) return <p className="text-red-500">Error: {error}</p>;
+
+  const now = new Date();
+  const computeTimeLeft = (due: string) => {
+    const diff = new Date(due).getTime() - now.getTime();
+    const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
+    return days > 0 ? `${days} days` : 'Due';
+  };
+
+  const filtered = assignments.filter(a => enrolledCourses.includes(a.course_id));
 
   return (
     <Card className="p-6">
       <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Upcoming Assignments</h2>
       <div className="space-y-4">
-        {assignments.map((assignment) => (
-          <div 
-            key={assignment.id}
-            className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg"
-          >
+        {filtered.map((assignment) => (
+          <div key={assignment.id} className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
             <h3 className="font-medium text-gray-900 dark:text-white">{assignment.title}</h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{assignment.course}</p>
-            
-            <div className="mt-3 flex items-center justify-between">
-              <div className="flex items-center space-x-4">
-                <div className="flex items-center text-gray-500 dark:text-gray-400">
-                  <Calendar size={16} className="mr-1" />
-                  <span className="text-sm">{assignment.dueDate}</span>
-                </div>
-                <div className="flex items-center text-gray-500 dark:text-gray-400">
-                  <Clock size={16} className="mr-1" />
-                  <span className="text-sm">{assignment.timeLeft}</span>
-                </div>
+            <p className="text-sm text-gray-600 dark:text-gray-400">Course ID: {assignment.course_id}</p>
+            <div className="mt-2 flex items-center space-x-4">
+              <div className="flex items-center text-gray-500 dark:text-gray-400">
+                <Calendar size={16} className="mr-1" />
+                <span className="text-sm">Due: {new Date(assignment.due_date).toLocaleDateString()}</span>
               </div>
-              <Button size="sm">View</Button>
+              <div className="flex items-center text-gray-500 dark:text-gray-400">
+                <Clock size={16} className="mr-1" />
+                <span className="text-sm">{computeTimeLeft(assignment.due_date)}</span>
+              </div>
+            </div>
+            <div className="mt-4">
+              <Link to={`/assignments/${assignment.id}`}>
+                <Button size="sm">View</Button>
+              </Link>
             </div>
           </div>
         ))}

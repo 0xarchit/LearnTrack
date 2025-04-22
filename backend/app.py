@@ -134,6 +134,13 @@ def init_db():
     except sqlite3.OperationalError:
         pass
     conn.close()
+    # add description to submissions
+    conn = get_db_connection(); c = conn.cursor()
+    try:
+        c.execute('ALTER TABLE submissions ADD COLUMN description TEXT DEFAULT ""')
+    except sqlite3.OperationalError:
+        pass
+    conn.commit(); conn.close()
 
 # create uploads directory
 UPLOAD_DIR = os.path.join(BASE_DIR, 'uploads')
@@ -377,6 +384,18 @@ def create_assignment(assignment: AssignmentIn):
         (last_id,)
     ).fetchone()
     conn.close()
+    return dict(row)
+
+@app.get("/api/assignments/{assignment_id}", response_model=AssignmentOut)
+def get_assignment(assignment_id: int):
+    conn = get_db_connection()
+    row = conn.execute(
+        'SELECT id, title, course_id, description, due_date FROM assignments WHERE id = ?',
+        (assignment_id,)
+    ).fetchone()
+    conn.close()
+    if not row:
+        raise HTTPException(status_code=404, detail="Assignment not found")
     return dict(row)
 
 @app.get("/api/materials")
@@ -722,6 +741,38 @@ def grade_submission(submission_id: int, grade: int = Query(...)):  # grade as q
     c.execute('UPDATE submissions SET grade = ? WHERE id = ?', (grade, submission_id))
     conn.commit(); conn.close()
     return {"id": submission_id, "grade": grade}
+
+@app.post("/api/assignments/{assignment_id}/submissions")
+async def create_submission(
+    assignment_id: int,
+    user_id: int = Form(...),
+    description: Optional[str] = Form(None),
+    file: UploadFile = File(None)
+):
+    if not description and not file:
+        raise HTTPException(status_code=400, detail="Either file or description is required")
+    file_url = ""
+    if file:
+        sub_dir = os.path.join(UPLOAD_DIR, 'submissions')
+        os.makedirs(sub_dir, exist_ok=True)
+        file_path = os.path.join(sub_dir, file.filename)
+        contents = await file.read()
+        with open(file_path, 'wb') as f:
+            f.write(contents)
+        file_url = f"/uploads/submissions/{file.filename}"
+    conn = get_db_connection(); c = conn.cursor()
+    c.execute(
+        'INSERT INTO submissions (user_id, assignment_id, file_url, description) VALUES (?, ?, ?, ?)',
+        (user_id, assignment_id, file_url, description or "")
+    )
+    conn.commit()
+    sub_id = c.lastrowid
+    row = c.execute(
+        'SELECT id, user_id, assignment_id, file_url, submitted_at, grade, description FROM submissions WHERE id = ?',
+        (sub_id,)
+    ).fetchone()
+    conn.close()
+    return dict(row)
 
 if __name__ == '__main__':
     import uvicorn
