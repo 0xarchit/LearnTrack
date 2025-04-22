@@ -3,16 +3,20 @@ import { motion } from 'framer-motion';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import { FileText, Video, Download, Search, Filter, Grid, List } from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
 
 const Materials = () => {
+  const { user } = useAuth();
   const [view, setView] = useState<'grid' | 'list'>('grid');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedType, setSelectedType] = useState<string>('all');
   const [materials, setMaterials] = useState<any[]>([]);
+  const [enrolledCourses, setEnrolledCourses] = useState<number[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
+  // fetch all materials
   useEffect(() => {
     fetch(`${API_URL}/api/materials`)
       .then(res => res.json())
@@ -21,12 +25,23 @@ const Materials = () => {
       .finally(() => setLoading(false));
   }, []);
 
-  const filteredMaterials = materials.filter(material => {
-    const matchesSearch = material.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         material.course.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesType = selectedType === 'all' || material.type === selectedType;
-    return matchesSearch && matchesType;
-  });
+  // fetch student's enrolled course IDs
+  useEffect(() => {
+    if (!user) return;
+    fetch(`${API_URL}/api/enrollments?user_id=${user.id}`)
+      .then(res => res.json())
+      .then((ids: number[]) => setEnrolledCourses(ids))
+      .catch(() => {});
+  }, [user]);
+
+  const filteredMaterials = materials
+    // only materials for courses student is enrolled in
+    .filter(material => enrolledCourses.includes(material.course_id))
+    .filter(material => {
+      const matchesSearch = material.title.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesType = selectedType === 'all' || material.type === selectedType;
+      return matchesSearch && matchesType;
+    });
 
   return (
     loading ? (
