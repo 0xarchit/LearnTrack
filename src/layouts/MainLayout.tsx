@@ -17,7 +17,8 @@ import {
   ChevronDown,
   Bell,
   Users,
-  CheckCircle
+  CheckCircle,
+  Plus
 } from 'lucide-react';
 
 const MainLayout: React.FC = () => {
@@ -53,6 +54,7 @@ const MainLayout: React.FC = () => {
       { name: 'Faculty Panel', to: '/faculty', icon: <User size={20} /> },
       { name: 'Grade Assignments', to: '/faculty/grade', icon: <CheckCircle size={20} /> },
       { name: 'Manage Materials', to: '/faculty/materials', icon: <FileText size={20} /> },
+      { name: 'New Assignment', to: '/faculty/new-assignment', icon: <Plus size={20} /> },
     ];
   } else {
     // Student links

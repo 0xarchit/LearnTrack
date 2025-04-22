@@ -82,6 +82,16 @@ def init_db():
             created_at TEXT DEFAULT CURRENT_TIMESTAMP
         )
     ''')
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS submissions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER,
+            assignment_id INTEGER,
+            file_url TEXT,
+            submitted_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            grade INTEGER
+        )
+    ''')
     conn.commit()
     conn.close()
     # ensure status column exists and add profile columns
@@ -248,6 +258,20 @@ class MaterialOut(BaseModel):
     type: str
     url: str
 
+# Assignment models
+class AssignmentIn(BaseModel):
+    title: str
+    course_id: int
+    description: Optional[str] = ''
+    due_date: str
+
+class AssignmentOut(BaseModel):
+    id: int
+    title: str
+    course_id: int
+    description: Optional[str]
+    due_date: str
+
 @app.on_event("startup")
 def on_startup():
     init_db()
@@ -338,6 +362,22 @@ def get_course(course_id: int):
 def get_assignments():
     conn = get_db_connection(); rows = conn.execute('SELECT * FROM assignments').fetchall(); conn.close()
     return [dict(r) for r in rows]
+
+@app.post("/api/assignments", response_model=AssignmentOut, status_code=201)
+def create_assignment(assignment: AssignmentIn):
+    conn = get_db_connection(); c = conn.cursor()
+    c.execute(
+        'INSERT INTO assignments (title, course_id, description, due_date) VALUES (?, ?, ?, ?)',
+        (assignment.title, assignment.course_id, assignment.description, assignment.due_date)
+    )
+    conn.commit()
+    last_id = c.lastrowid
+    row = c.execute(
+        'SELECT id, title, course_id, description, due_date FROM assignments WHERE id = ?',
+        (last_id,)
+    ).fetchone()
+    conn.close()
+    return dict(row)
 
 @app.get("/api/materials")
 def get_materials():
@@ -666,6 +706,22 @@ def delete_notification(notif_id: int):
     c.execute('DELETE FROM notifications WHERE id = ?', (notif_id,))
     conn.commit(); conn.close()
     return {"success": True}
+
+@app.get("/api/assignments/{assignment_id}/submissions")
+def get_submissions(assignment_id: int):
+    conn = get_db_connection(); rows = conn.execute(
+        'SELECT s.id, s.user_id, u.name as user_name, s.file_url, s.submitted_at, s.grade '
+        'FROM submissions s JOIN users u ON s.user_id = u.id '
+        'WHERE s.assignment_id = ?', (assignment_id,)
+    ).fetchall(); conn.close()
+    return [dict(r) for r in rows]
+
+@app.put("/api/submissions/{submission_id}/grade")
+def grade_submission(submission_id: int, grade: int = Query(...)):  # grade as query param
+    conn = get_db_connection(); c = conn.cursor()
+    c.execute('UPDATE submissions SET grade = ? WHERE id = ?', (grade, submission_id))
+    conn.commit(); conn.close()
+    return {"id": submission_id, "grade": grade}
 
 if __name__ == '__main__':
     import uvicorn

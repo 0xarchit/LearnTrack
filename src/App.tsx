@@ -35,6 +35,7 @@ import ManageNotifications from './pages/admin/ManageNotifications';
 import FacultyDashboard from './pages/faculty/FacultyDashboard';
 import GradeAssignments from './pages/faculty/GradeAssignments';
 import ManageMaterials from './pages/faculty/ManageMaterials';
+import NewAssignment from './pages/faculty/NewAssignment';
 
 // Auth Guard
 import ProtectedRoute from './components/auth/ProtectedRoute';
@@ -89,6 +90,7 @@ function App() {
               <Route path="/faculty" element={<FacultyDashboard />} />
               <Route path="/faculty/grade" element={<GradeAssignments />} />
               <Route path="/faculty/materials" element={<ManageMaterials />} />
+              <Route path="/faculty/new-assignment" element={<NewAssignment />} />
             </Route>
           </Route>
         </Route>

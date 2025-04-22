@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import Card from '../../components/ui/Card';
 import { Users, BookOpen, FileText, Clock, CheckCircle } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
@@ -102,7 +103,7 @@ const FacultyDashboard = () => {
       </div>
 
       {/* Add more faculty dashboard content here */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Link to="/faculty/grade">
           <Card className="p-6 hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer">
             <div className="flex items-center space-x-4">
@@ -116,6 +117,14 @@ const FacultyDashboard = () => {
             <div className="flex items-center space-x-4">
               <FileText size={24} className="text-primary-600" />
               <h3 className="text-lg font-medium text-gray-900 dark:text-white">Manage Materials</h3>
+            </div>
+          </Card>
+        </Link>
+        <Link to="/faculty/new-assignment">
+          <Card className="p-6 hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer">
+            <div className="flex items-center space-x-4">
+              <Plus size={24} className="text-primary-600" />
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white">New Assignment</h3>
             </div>
           </Card>
         </Link>
