@@ -86,7 +86,7 @@ LearnTrack/
 │   └── App.tsx         # Routes configuration
 ├── database.db         # SQLite database
 ├── package.json        # Frontend dependencies
-└── docs.md             # Project documentation
+└── Readme.md             # Project documentation
 ```  
 
 ## Getting Started
