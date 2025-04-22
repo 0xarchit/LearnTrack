@@ -51,7 +51,9 @@ export default function StudentAssignments() {
     return days > 0 ? `${days} days` : 'Due';
   };
 
-  const filtered = assignments.filter(a => enrolledCourses.includes(a.course_id));
+  const filtered = assignments
+    .filter(a => enrolledCourses.includes(a.course_id))
+    .filter(a => !completedIds.includes(a.id));
 
   return (
     <Card className="p-6">
@@ -64,6 +66,7 @@ export default function StudentAssignments() {
           <div key={assignment.id} className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
             <h3 className="font-medium text-gray-900 dark:text-white">{assignment.title}</h3>
             <p className="text-sm text-gray-600 dark:text-gray-400">Course ID: {assignment.course_id}</p>
+            <p className="text-sm text-gray-600 dark:text-gray-400">Max Score: {assignment.max_score ?? assignment.maxScore ?? 'N/A'}</p>
             {/* hide due info if assignment completed */}
             {!isCompleted && (
             <div className="mt-2 flex items-center space-x-4">

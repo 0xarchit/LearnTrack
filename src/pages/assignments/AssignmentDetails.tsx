@@ -1,4 +1,4 @@
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
@@ -8,6 +8,7 @@ import { useAuth } from '../../contexts/AuthContext';
 
 const AssignmentDetails = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
   const [assignment, setAssignment] = useState<any | null>(null);
   const { user } = useAuth();
@@ -76,6 +77,7 @@ const AssignmentDetails = () => {
       }
       const sub = await res.json();
       setSubmissions([sub]);
+      navigate('/dashboard');
     } catch (err: any) {
       setSubmitError(err.message);
     } finally {
@@ -186,7 +188,7 @@ const AssignmentDetails = () => {
                   <FileText className="h-5 w-5 text-gray-400 mr-3" />
                   <div>
                     <p className="text-sm text-gray-500 dark:text-gray-400">Max Score</p>
-                    <p className="text-sm font-medium text-gray-900 dark:text-white">{assignment.maxScore} points</p>
+                    <p className="text-sm font-medium text-gray-900 dark:text-white">{assignment.max_score ?? assignment.maxScore ?? 'N/A'} points</p>
                   </div>
                 </div>
               </div>

@@ -14,6 +14,7 @@ const NewAssignment = () => {
   const [description, setDescription] = useState('');
   const [courseId, setCourseId] = useState<number | ''>('');
   const [dueDate, setDueDate] = useState('');
+  const [maxScore, setMaxScore] = useState<number | ''>('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -26,13 +27,13 @@ const NewAssignment = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title || !courseId || !dueDate) return setError('Please fill required fields');
+    if (!title || !courseId || !dueDate || !maxScore) return setError('Please fill required fields');
     setLoading(true);
     try {
       const res = await fetch(`${API_URL}/api/assignments`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, description, course_id: courseId, due_date: dueDate })
+        body: JSON.stringify({ title, description, course_id: courseId, due_date: dueDate, max_score: maxScore })
       });
       if (!res.ok) throw new Error('Failed to create assignment');
       navigate('/faculty');
@@ -87,6 +88,17 @@ const NewAssignment = () => {
               type="date"
               value={dueDate}
               onChange={e => setDueDate(e.target.value)}
+              required
+              className="block w-full rounded-md bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 p-2 focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Max Score *</label>
+            <input
+              title='Max Score'
+              type="number"
+              value={maxScore}
+              onChange={e => setMaxScore(Number(e.target.value))}
               required
               className="block w-full rounded-md bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 p-2 focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
             />

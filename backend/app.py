@@ -141,6 +141,13 @@ def init_db():
     except sqlite3.OperationalError:
         pass
     conn.commit(); conn.close()
+    # add max_score to assignments
+    conn = get_db_connection(); c = conn.cursor()
+    try:
+        c.execute('ALTER TABLE assignments ADD COLUMN max_score INTEGER DEFAULT 0')
+    except sqlite3.OperationalError:
+        pass
+    conn.commit(); conn.close()
 
 # create uploads directory
 UPLOAD_DIR = os.path.join(BASE_DIR, 'uploads')
@@ -271,6 +278,7 @@ class AssignmentIn(BaseModel):
     course_id: int
     description: Optional[str] = ''
     due_date: str
+    max_score: int
 
 class AssignmentOut(BaseModel):
     id: int
@@ -278,6 +286,7 @@ class AssignmentOut(BaseModel):
     course_id: int
     description: Optional[str]
     due_date: str
+    max_score: int
 
 @app.on_event("startup")
 def on_startup():
@@ -374,13 +383,13 @@ def get_assignments():
 def create_assignment(assignment: AssignmentIn):
     conn = get_db_connection(); c = conn.cursor()
     c.execute(
-        'INSERT INTO assignments (title, course_id, description, due_date) VALUES (?, ?, ?, ?)',
-        (assignment.title, assignment.course_id, assignment.description, assignment.due_date)
+        'INSERT INTO assignments (title, course_id, description, due_date, max_score) VALUES (?, ?, ?, ?, ?)',
+        (assignment.title, assignment.course_id, assignment.description, assignment.due_date, assignment.max_score)
     )
     conn.commit()
     last_id = c.lastrowid
     row = c.execute(
-        'SELECT id, title, course_id, description, due_date FROM assignments WHERE id = ?',
+        'SELECT id, title, course_id, description, due_date, max_score FROM assignments WHERE id = ?',
         (last_id,)
     ).fetchone()
     conn.close()
@@ -390,7 +399,7 @@ def create_assignment(assignment: AssignmentIn):
 def get_assignment(assignment_id: int):
     conn = get_db_connection()
     row = conn.execute(
-        'SELECT id, title, course_id, description, due_date FROM assignments WHERE id = ?',
+        'SELECT id, title, course_id, description, due_date, max_score FROM assignments WHERE id = ?',
         (assignment_id,)
     ).fetchone()
     conn.close()
