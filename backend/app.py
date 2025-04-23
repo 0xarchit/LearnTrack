@@ -79,7 +79,7 @@ def init_db():
             message TEXT NOT NULL,
             type TEXT NOT NULL,
             target_role TEXT NOT NULL,
-            created_at TEXT DEFAULT CURRENT_TIMESTAMP
+            created_at TEXT DEFAULT (DATETIME('now','localtime'))
         )
     ''')
     c.execute('''
@@ -249,7 +249,7 @@ class NotificationOut(BaseModel):
     message: str
     type: str
     target_role: str
-    created_at: str
+    created_at: datetime
 
 from typing import List
 
@@ -681,7 +681,7 @@ def unenroll(enrollment: Enrollment):
 def create_notification(notif: NotificationIn):
     conn = get_db_connection(); c = conn.cursor()
     c.execute(
-        'INSERT INTO notifications (message, type, target_role) VALUES (?, ?, ?)',
+        'INSERT INTO notifications (message, type, target_role, created_at) VALUES (?, ?, ?, DATETIME(\'now\', \'localtime\'))',
         (notif.message, notif.type, notif.target_role)
     )
     conn.commit()
