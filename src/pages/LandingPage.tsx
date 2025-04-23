@@ -281,17 +281,18 @@ const LandingPage: React.FC = () => {
                     'Access study materials and resources',
                     'Monitor academic progress analytics',
                   ].map((item, index) => (
-                    <motion.li 
-                      key={index}
-                      className="flex items-start"
-                      initial={{ opacity: 0, x: -10 }}
-                      whileInView={{ opacity: 1, x: 0 }}
-                      viewport={{ once: true }}
-                      transition={{ duration: 0.3, delay: index * 0.1 }}
-                    >
-                      <CheckCircle className="h-6 w-6 text-primary-500 mr-2 flex-shrink-0" />
-                      <span className="text-gray-700 dark:text-gray-300">{item}</span>
-                    </motion.li>
+                    <li key={index} className="flex items-start">
+                      <motion.div
+                        initial={{ opacity: 0, x: -10 }}
+                        whileInView={{ opacity: 1, x: 0 }}
+                        viewport={{ once: true }}
+                        transition={{ duration: 0.3, delay: index * 0.1 }}
+                        className="flex items-start"
+                      >
+                        <CheckCircle className="h-6 w-6 text-primary-500 mr-2 flex-shrink-0" />
+                        <span className="text-gray-700 dark:text-gray-300">{item}</span>
+                      </motion.div>
+                    </li>
                   ))}
                 </ul>
               </motion.div>
@@ -344,17 +345,18 @@ const LandingPage: React.FC = () => {
                     'Track student performance and engagement',
                     'Communicate efficiently with students',
                   ].map((item, index) => (
-                    <motion.li 
-                      key={index}
-                      className="flex items-start"
-                      initial={{ opacity: 0, x: 10 }}
-                      whileInView={{ opacity: 1, x: 0 }}
-                      viewport={{ once: true }}
-                      transition={{ duration: 0.3, delay: index * 0.1 }}
-                    >
-                      <CheckCircle className="h-6 w-6 text-secondary-500 mr-2 flex-shrink-0" />
-                      <span className="text-gray-700 dark:text-gray-300">{item}</span>
-                    </motion.li>
+                    <li key={index} className="flex items-start">
+                      <motion.div
+                        initial={{ opacity: 0, x: 10 }}
+                        whileInView={{ opacity: 1, x: 0 }}
+                        viewport={{ once: true }}
+                        transition={{ duration: 0.3, delay: index * 0.1 }}
+                        className="flex items-start"
+                      >
+                        <CheckCircle className="h-6 w-6 text-secondary-500 mr-2 flex-shrink-0" />
+                        <span className="text-gray-700 dark:text-gray-300">{item}</span>
+                      </motion.div>
+                    </li>
                   ))}
                 </ul>
               </motion.div>
