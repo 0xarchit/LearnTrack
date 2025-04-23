@@ -7,7 +7,6 @@ from datetime import datetime
 import os, sqlite3
 from passlib.context import CryptContext
 
-# Ensure db path is absolute
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(BASE_DIR, 'database.db')
 
@@ -19,7 +18,6 @@ def get_db_connection():
 def init_db():
     conn = get_db_connection()
     c = conn.cursor()
-    # create tables if not exist
     c.execute('''
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -64,7 +62,6 @@ def init_db():
             grade INTEGER
         )
     ''')
-    # create enrollments table
     c.execute('''
         CREATE TABLE IF NOT EXISTS enrollments (
             user_id INTEGER,
@@ -72,7 +69,6 @@ def init_db():
             PRIMARY KEY (user_id, course_id)
         )
     ''')
-    # create notifications table
     c.execute('''
         CREATE TABLE IF NOT EXISTS notifications (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -94,30 +90,25 @@ def init_db():
     ''')
     conn.commit()
     conn.close()
-    # ensure status column exists and add profile columns
     conn = get_db_connection()
     c = conn.cursor()
     try:
         c.execute('ALTER TABLE courses ADD COLUMN status TEXT DEFAULT "pending"')
     except sqlite3.OperationalError:
         pass
-    # add profile fields to users table
     for col in ('phone','address','department','joinDate'):
         try:
             c.execute(f'ALTER TABLE users ADD COLUMN {col} TEXT')
         except sqlite3.OperationalError:
             pass
-    # add duration column to courses
     try:
         c.execute('ALTER TABLE courses ADD COLUMN duration TEXT DEFAULT ""')
     except sqlite3.OperationalError:
         pass
-    # add instructor_id field to courses for foreign key linking to users
     try:
         c.execute('ALTER TABLE courses ADD COLUMN instructor_id INTEGER')
     except sqlite3.OperationalError:
         pass
-    # migrate existing instructor names to instructor_id
     try:
         rows = c.execute('SELECT id, instructor FROM courses').fetchall()
         for row in rows:
@@ -128,20 +119,17 @@ def init_db():
                 c.execute('UPDATE courses SET instructor_id = ? WHERE id = ?', (instr_id, row['id']))
     except Exception:
         pass
-    # add thumbnail_url column to courses
     try:
         c.execute('ALTER TABLE courses ADD COLUMN thumbnail_url TEXT DEFAULT ""')
     except sqlite3.OperationalError:
         pass
     conn.close()
-    # add description to submissions
     conn = get_db_connection(); c = conn.cursor()
     try:
         c.execute('ALTER TABLE submissions ADD COLUMN description TEXT DEFAULT ""')
     except sqlite3.OperationalError:
         pass
     conn.commit(); conn.close()
-    # add max_score to assignments
     conn = get_db_connection(); c = conn.cursor()
     try:
         c.execute('ALTER TABLE assignments ADD COLUMN max_score INTEGER DEFAULT 0')
@@ -149,12 +137,10 @@ def init_db():
         pass
     conn.commit(); conn.close()
 
-# create uploads directory
 UPLOAD_DIR = os.path.join(BASE_DIR, 'uploads')
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 app = FastAPI()
-# add password hashing context
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 app.add_middleware(
     CORSMiddleware,
@@ -163,10 +149,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# serve static uploaded files
 app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
 
-# Models
 class UserIn(BaseModel):
     name: str
     email: str
@@ -233,11 +217,10 @@ class CourseUpdate(BaseModel):
     status: Optional[str] = None
     duration: Optional[str] = None
 
-# Notification models
 class NotificationIn(BaseModel):
     message: str
     type: str
-    target_role: str  # e.g. 'student', 'faculty', 'admin', or 'all'
+    target_role: str
 
 class NotificationUpdate(BaseModel):
     message: Optional[str] = None
@@ -253,12 +236,10 @@ class NotificationOut(BaseModel):
 
 from typing import List
 
-# Enrollment model
 class Enrollment(BaseModel):
     user_id: int
     course_id: int
 
-# Material models
 class MaterialIn(BaseModel):
     title: str
     course_id: int
@@ -272,7 +253,6 @@ class MaterialOut(BaseModel):
     type: str
     url: str
 
-# Assignment models
 class AssignmentIn(BaseModel):
     title: str
     course_id: int
@@ -292,12 +272,10 @@ class AssignmentOut(BaseModel):
 def on_startup():
     init_db()
 
-# Auth endpoints
 @app.post("/api/register", response_model=UserOut, status_code=201)
 def register(user: UserIn):
     conn = get_db_connection(); c = conn.cursor()
     try:
-        # new users can only register as student; hash password
         hashed = pwd_context.hash(user.password)
         c.execute(
             'INSERT INTO users (name, email, password, role, phone, address, department, joinDate) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
@@ -317,7 +295,6 @@ def register(user: UserIn):
 @app.post("/api/login", response_model=UserOut)
 def login(login: LoginIn):
     conn = get_db_connection(); c = conn.cursor()
-    # fetch user by email and role
     c.execute(
         'SELECT id, name, email, role, phone, address, department, joinDate, password FROM users WHERE email = ? AND role = ?',
         (login.email, login.role)
@@ -330,7 +307,6 @@ def login(login: LoginIn):
     data.pop('password', None)
     return data
 
-# Data endpoints
 @app.get("/api/courses")
 def get_courses():
     conn = get_db_connection()
@@ -426,13 +402,11 @@ async def create_material(
     type: str = Form(...),
     file: UploadFile = File(...)
 ):
-    # save uploaded file to disk
     file_location = os.path.join(UPLOAD_DIR, file.filename)
     contents = await file.read()
     with open(file_location, "wb") as f:
         f.write(contents)
     url = f"/uploads/{file.filename}"
-    # store record in database
     conn = get_db_connection(); c = conn.cursor()
     c.execute(
         'INSERT INTO materials (title, course_id, type, url) VALUES (?, ?, ?, ?)',
@@ -458,7 +432,6 @@ def get_grades(user_id: int = Query(...)):
     conn = get_db_connection(); rows = conn.execute('SELECT * FROM grades WHERE user_id = ?', (user_id,)).fetchall(); conn.close()
     return [dict(r) for r in rows]
 
-# User management
 @app.get("/api/users", response_model=List[UserOut])
 def get_users():
     conn = get_db_connection(); rows = conn.execute('SELECT id, name, email, role, phone, address, department, joinDate FROM users').fetchall(); conn.close()
@@ -468,7 +441,6 @@ def get_users():
 def create_user(user: UserIn):
     conn = get_db_connection(); c = conn.cursor()
     try:
-        # admin-created user; hash password
         hashed = pwd_context.hash(user.password)
         c.execute(
             'INSERT INTO users (name, email, password, role, phone, address, department, joinDate) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
@@ -486,7 +458,6 @@ def create_user(user: UserIn):
 @app.put("/api/users/{user_id}", response_model=UserOut)
 def update_user(user_id: int, user: UpdateUser):
     conn = get_db_connection(); c = conn.cursor()
-    # fetch existing profile
     existing = c.execute('SELECT * FROM users WHERE id = ?', (user_id,)).fetchone()
     if not existing:
         conn.close(); raise HTTPException(status_code=404, detail="User not found")
@@ -511,13 +482,11 @@ def update_user(user_id: int, user: UpdateUser):
 @app.put("/api/users/{user_id}/password")
 def change_password(user_id: int, pwd: PasswordUpdate):
     conn = get_db_connection(); c = conn.cursor()
-    # verify current password
     row = c.execute('SELECT password FROM users WHERE id = ?', (user_id,)).fetchone()
     if not row:
         raise HTTPException(status_code=404, detail="User not found")
     if not pwd_context.verify(pwd.current_password, row['password']):
         raise HTTPException(status_code=400, detail="Current password incorrect")
-    # update with hashed new password
     new_hashed = pwd_context.hash(pwd.new_password)
     c.execute('UPDATE users SET password = ? WHERE id = ?', (new_hashed, user_id))
     conn.commit(); conn.close()
@@ -528,7 +497,6 @@ def delete_user(user_id: int):
     conn = get_db_connection(); c = conn.cursor(); c.execute('DELETE FROM users WHERE id = ?', (user_id,)); conn.commit(); conn.close()
     return {"success": True}
 
-# Course approval
 @app.get("/api/courses/requests")
 def get_course_requests():
     conn = get_db_connection(); rows = conn.execute('SELECT * FROM courses WHERE status = ?', ('pending',)).fetchall(); conn.close()
@@ -552,7 +520,6 @@ async def create_course(
     duration: str = Form(''),
     thumbnail: UploadFile = File(None)
 ):
-    # save thumbnail if provided
     thumb_url = ''
     if thumbnail:
         thumb_path = os.path.join(UPLOAD_DIR, thumbnail.filename)
@@ -620,7 +587,6 @@ def delete_course(course_id: int):
     conn.commit(); conn.close()
     return {"success": True}
 
-# Reports
 @app.get("/api/reports/performance")
 def report_performance():
     return [
@@ -651,7 +617,6 @@ def get_course_students(course_id: int):
     conn.close()
     return [dict(r) for r in rows]
 
-# Enrollment endpoints
 @app.get("/api/enrollments")
 def get_enrollments(user_id: int):
     conn = get_db_connection()
@@ -676,7 +641,6 @@ def unenroll(enrollment: Enrollment):
     conn.commit(); conn.close()
     return {"success": True}
 
-# Notifications endpoints
 @app.post("/api/notifications", response_model=NotificationOut)
 def create_notification(notif: NotificationIn):
     conn = get_db_connection(); c = conn.cursor()
@@ -752,7 +716,7 @@ def get_submissions(assignment_id: int):
     return [dict(r) for r in rows]
 
 @app.put("/api/submissions/{submission_id}/grade")
-def grade_submission(submission_id: int, grade: int = Query(...)):  # grade as query param
+def grade_submission(submission_id: int, grade: int = Query(...)):
     conn = get_db_connection(); c = conn.cursor()
     c.execute('UPDATE submissions SET grade = ? WHERE id = ?', (grade, submission_id))
     conn.commit(); conn.close()
