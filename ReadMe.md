@@ -122,7 +122,7 @@ pip install -r requirements.txt
 
 Download, load, and run the pre-built Docker image:
 ```bash
-curl -L https://github.com/0xarchit/LearnTrack/releases/download/v2/learnTrack.tar -o learnTrack.tar
+curl -L https://github.com/0xarchit/LearnTrack/releases/download/2.0.0/learnTrack.tar -o learnTrack.tar
 docker load -i learnTrack.tar
 docker run --rm -d --name learntrack -p 5000:5000 -p 5173:5173 learntrack:latest
 ```
@@ -138,6 +138,16 @@ cd LearnTrack
 pnpm dev
 ```
 > Open http://localhost:5173 in your browser.
+
+### Demo Logins
+
+For testing purposes, you can use the following demo accounts:
+
+| Role | Email | Password |
+|------|-------|----------|
+| Student | student@0xarchit.is-a.dev | 12345678 |
+| Faculty | faculty@0xarchit.is-a.dev | 12345678 |
+| Admin | admin@0xarchit.is-a.dev | 12345678 |
 
 ## Frontend
 
