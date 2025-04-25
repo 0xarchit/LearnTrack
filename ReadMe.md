@@ -118,6 +118,15 @@ cd backend
 pip install -r requirements.txt
 ```
 
+### Prebuilt Docker Image (Optional)
+
+Download, load, and run the pre-built Docker image:
+```bash
+curl -L https://github.com/0xarchit/LearnTrack/releases/download/v2/learnTrack.tar -o learnTrack.tar
+docker load -i learnTrack.tar
+docker run --rm -d --name learntrack -p 5000:5000 -p 5173:5173 learntrack:latest
+```
+
 ### Running the Application
 ```bash
 # Start backend (FastAPI)

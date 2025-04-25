@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import Card from '../../components/ui/Card';
-import { Users, BookOpen, FileText, Clock, CheckCircle } from 'lucide-react';
+import { Users, BookOpen, FileText, Clock, CheckCircle, Send } from 'lucide-react';
 import { Plus } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useState, useEffect } from 'react';
@@ -125,6 +125,14 @@ const FacultyDashboard = () => {
             <div className="flex items-center space-x-4">
               <Plus size={24} className="text-primary-600" />
               <h3 className="text-lg font-medium text-gray-900 dark:text-white">New Assignment</h3>
+            </div>
+          </Card>
+        </Link>
+        <Link to="/faculty/notifications">
+          <Card className="p-6 hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer">
+            <div className="flex items-center space-x-4">
+              <Send size={24} className="text-primary-600" />
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white">Send Notification</h3>
             </div>
           </Card>
         </Link>

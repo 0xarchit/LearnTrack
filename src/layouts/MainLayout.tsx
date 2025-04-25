@@ -129,7 +129,7 @@ const MainLayout: React.FC = () => {
           {/* Right side: notifications, theme toggle, profile */}
           <div className="flex items-center space-x-4">
             {/* Notifications */}
-            <div className="relative">
+            <div className="relative sm:relative">
               <button 
                 onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
                 className="p-2 rounded-full text-gray-500 hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-700"
@@ -147,7 +147,7 @@ const MainLayout: React.FC = () => {
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: 10 }}
                     transition={{ duration: 0.2 }}
-                    className="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 rounded-lg shadow-dropdown ring-1 ring-black ring-opacity-5 focus:outline-none z-50"
+                    className="fixed sm:absolute left-4 right-4 sm:left-auto sm:right-0 top-16 sm:top-full mt-2 w-auto sm:w-[280px] md:w-[350px] lg:w-[400px] bg-white dark:bg-gray-800 rounded-lg shadow-lg ring-1 ring-black ring-opacity-5 z-50 overflow-hidden"
                   >
                     <div className="p-3 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
                       <h3 className="text-sm font-medium">Notifications</h3>
@@ -157,24 +157,30 @@ const MainLayout: React.FC = () => {
                         </button>
                       )}
                     </div>
-                    <div className="max-h-96 overflow-y-auto">
-                      {notifications.map((n) => (
-                        <div key={n.id} className="p-3 hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-200 dark:border-gray-700 last:border-none flex justify-between items-start">
-                          <div>
-                            <div className="text-sm text-gray-800 dark:text-gray-200">{n.message}</div>
-                            <div className="text-xs text-gray-400 dark:text-gray-500 mt-1">{new Date(n.created_at).toLocaleString()}</div>
-                          </div>
-                          {(userRole === 'admin' || userRole === 'faculty') && (
-                            <button 
-                              aria-label="Delete notification"
-                              className="text-gray-400 hover:text-red-600 ml-4"
-                              onClick={() => handleDeleteNotification(n.id)}
-                            >
-                              <X size={16} />
-                            </button>
-                          )}
+                    <div className="max-h-[50vh] overflow-y-auto">
+                      {notifications.length === 0 ? (
+                        <div className="p-4 text-center text-sm text-gray-500 dark:text-gray-400">
+                          No notifications
                         </div>
-                      ))}
+                      ) : (
+                        notifications.map((n) => (
+                          <div key={n.id} className="p-3 hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-200 dark:border-gray-700 last:border-none flex justify-between items-start">
+                            <div className="flex-1 pr-2">
+                              <div className="text-sm text-gray-800 dark:text-gray-200 break-words">{n.message}</div>
+                              <div className="text-xs text-gray-400 dark:text-gray-500 mt-1">{new Date(n.created_at).toLocaleString()}</div>
+                            </div>
+                            {(userRole === 'admin' || userRole === 'faculty') && (
+                              <button 
+                                aria-label="Delete notification"
+                                className="text-gray-400 hover:text-red-600 ml-4 flex-shrink-0"
+                                onClick={() => handleDeleteNotification(n.id)}
+                              >
+                                <X size={16} />
+                              </button>
+                            )}
+                          </div>
+                        ))
+                      )}
                     </div>
                   </motion.div>
                 )}

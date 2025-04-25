@@ -26,3 +26,6 @@ dist-ssr
 **/*__pycache__/*
 
 **/*uploads/*
+config21.yml
+**/*.env
+learnTrack.tar

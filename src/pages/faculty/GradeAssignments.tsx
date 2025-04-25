@@ -75,8 +75,8 @@ export default function GradeAssignments() {
     >
       <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Grade Assignments</h1>
 
-      <Card className="overflow-hidden mb-6">
-        <div className="overflow-x-auto">
+      <Card className="mb-6">
+        <div className="overflow-x-auto max-w-full">
           <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
             <thead className="bg-gray-50 dark:bg-gray-800">
               <tr>
@@ -114,41 +114,43 @@ export default function GradeAssignments() {
           <div className="p-6">
             <h2 className="text-lg font-semibold mb-4">Submissions for Assignment {selectedAssignmentId}</h2>
             {loadingSubs ? <p>Loading...</p> : subError ? <p className="text-red-500">{subError}</p> : (
-              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                <thead className="bg-gray-50 dark:bg-gray-800">
-                  <tr>
-                    <th className="px-4 py-2 text-left">Name</th>
-                    <th className="px-4 py-2 text-left">Submitted At</th>
-                    <th className="px-4 py-2 text-left">File</th>
-                    <th className="px-4 py-2 text-left">Grade</th>
-                    <th className="px-4 py-2 text-left">Action</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
-                  {submissions.map(s => (
-                    <tr key={s.id}>
-                      <td className="px-4 py-2">{s.user_name}</td>
-                      <td className="px-4 py-2">{new Date(s.submitted_at).toLocaleString()}</td>
-                      <td className="px-4 py-2">
-                        <a href={s.file_url} target="_blank" rel="noopener noreferrer" className="text-primary-600 hover:underline">Download</a>
-                      </td>
-                      <td className="px-4 py-2">
-                        <input
-                          title="grade"
-                          type="number"
-                          min="0" max="100"
-                          value={grading[s.id] || s.grade || ''}
-                          onChange={e => setGrading({ ...grading, [s.id]: e.target.value })}
-                          className="w-16 p-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 rounded focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                        />
-                      </td>
-                      <td className="px-4 py-2">
-                        <button onClick={() => handleGrade(s.id)} className="text-success-600 hover:underline">Save</button>
-                      </td>
+              <div className="overflow-x-auto -mx-6">
+                <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                  <thead className="bg-gray-50 dark:bg-gray-800">
+                    <tr>
+                      <th className="px-4 py-2 text-left">Name</th>
+                      <th className="px-4 py-2 text-left">Submitted At</th>
+                      <th className="px-4 py-2 text-left">File</th>
+                      <th className="px-4 py-2 text-left">Grade</th>
+                      <th className="px-4 py-2 text-left">Action</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
+                    {submissions.map(s => (
+                      <tr key={s.id}>
+                        <td className="px-4 py-2">{s.user_name}</td>
+                        <td className="px-4 py-2 whitespace-nowrap">{new Date(s.submitted_at).toLocaleString()}</td>
+                        <td className="px-4 py-2">
+                          <a href={s.file_url} target="_blank" rel="noopener noreferrer" className="text-primary-600 hover:underline">Download</a>
+                        </td>
+                        <td className="px-4 py-2">
+                          <input
+                            title="grade"
+                            type="number"
+                            min="0" max="100"
+                            value={grading[s.id] || s.grade || ''}
+                            onChange={e => setGrading({ ...grading, [s.id]: e.target.value })}
+                            className="w-16 p-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 rounded focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                          />
+                        </td>
+                        <td className="px-4 py-2">
+                          <button onClick={() => handleGrade(s.id)} className="text-success-600 hover:underline">Save</button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )}
           </div>
         </Card>
