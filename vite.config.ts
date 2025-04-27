@@ -15,6 +15,7 @@ export default defineConfig({
         changeOrigin: true,
       },
     },
+    allowedHosts: ["learntrack.0xarchit.is-a.dev", "db.0xarchit.is-a.dev"],
   },
   optimizeDeps: {
     exclude: ["lucide-react"],
