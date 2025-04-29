@@ -90,7 +90,7 @@ const Courses = () => {
               <div className="h-48 overflow-hidden">
                 {course.thumbnail_url ? (
                   <img
-                    src={course.thumbnail_url}
+                    src={`${API_URL}${course.thumbnail_url}`}
                     alt={course.title}
                     className="w-full h-full object-cover"
                   />
