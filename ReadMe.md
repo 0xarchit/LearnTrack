@@ -122,9 +122,9 @@ pip install -r requirements.txt
 
 Download, load, and run the pre-built Docker image:
 ```bash
-curl -L https://github.com/0xarchit/LearnTrack/releases/download/2.0.0/learnTrack.tar -o learnTrack.tar
-docker load -i learnTrack.tar
-docker run --rm -d --name learntrack -p 5000:5000 -p 5173:5173 learntrack:latest
+curl -L https://github.com/0xarchit/LearnTrack/releases/download/2.1.0/learntrack_v2_1.tar -o learntrack_v2_1.tar
+docker load -i learntrack_v2_1.tar
+docker run --rm -d --name learntrack_v2_1 -p 5000:5000 -p 5173:5173 learntrack_v2_1
 ```
 
 ### Running the Application
