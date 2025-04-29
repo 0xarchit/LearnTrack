@@ -3,15 +3,16 @@
 # 1. Build frontend
 FROM node:18-alpine AS frontend
 WORKDIR /app/frontend
-# Copy environment file for frontend
-COPY .env .env
-# Install pnpm
-RUN npm install -g pnpm
+# Set environment variable for frontend build
+# This will be used during build time
+ENV VITE_API_URL=http://localhost:5000
 # Copy manifests and config
 COPY index.html package.json pnpm-lock.yaml vite.config.ts tsconfig.json tsconfig.app.json tsconfig.node.json postcss.config.js tailwind.config.js ./
 # Copy frontend source
 COPY public/ ./public
 COPY src/ ./src
+# Install pnpm
+RUN npm install -g pnpm
 # Install dependencies and build
 RUN pnpm install --frozen-lockfile
 RUN pnpm build
@@ -34,6 +35,9 @@ WORKDIR /app
 RUN apk add --no-cache nodejs npm bash
 # Install serve globally
 RUN npm install -g serve
+
+# Set environment variable for runtime
+ENV VITE_API_URL=http://localhost:5000
 
 # Copy backend dependencies (including scripts) and code
 COPY --from=backend /usr/local /usr/local
