@@ -1,20 +1,31 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import Card from '../../components/ui/Card';
 import { useAuth } from '../../contexts/AuthContext';
 
 const Grades = () => {
   const { user } = useAuth();
-  const [courseGrades, setCourseGrades] = useState<any[]>([]);
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+  const [gradesData, setGradesData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
   useEffect(() => {
     if (!user) return;
-    fetch(`${API_URL}/api/grades?user_id=${user.id}`)
-      .then(res => res.json())
-      .then(data => setCourseGrades(data))
+    Promise.all([
+      fetch(`${API_URL}/api/assignments`).then(r => r.json()),
+      fetch(`${API_URL}/api/enrollments?user_id=${user.id}`).then(r => r.json())
+    ])
+      .then(async ([assignments, enrolledIds]: [any[], number[]]) => {
+        const myAssignments = assignments.filter(a => enrolledIds.includes(a.course_id));
+        const results = await Promise.all(
+          myAssignments.map(async a => {
+            const subs = await fetch(`${API_URL}/api/assignments/${a.id}/submissions`).then(r => r.json());
+            const me = subs.find((s: any) => s.user_id === user.id);
+            return me ? { title: a.title, grade: me.grade, max: a.max_score } : null;
+          })
+        );
+        setGradesData(results.filter(Boolean));
+      })
       .catch(err => setError(err.message))
       .finally(() => setLoading(false));
   }, [user]);
@@ -34,20 +45,22 @@ const Grades = () => {
       </div>
 
       <div className="mb-8">
-        <h2 className="text-xl font-semibold mb-4">Your Grades</h2>
+        <h2 className="text-xl font-semibold mb-4">Assignment Grades</h2>
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
             <thead className="bg-gray-50 dark:bg-gray-800">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Course ID</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Assignment</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Grade</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Max Score</th>
               </tr>
             </thead>
             <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
-              {courseGrades.map((g, idx) => (
+              {gradesData.map((g, idx) => (
                 <tr key={idx}>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">{g.course_id}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{g.grade}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">{g.title}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{g.grade}%</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{g.max}</td>
                 </tr>
               ))}
             </tbody>
@@ -55,50 +68,7 @@ const Grades = () => {
         </div>
       </div>
 
-      <Card>
-        <div className="p-6">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Detailed Grade Report</h2>
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-              <thead className="bg-gray-50 dark:bg-gray-800">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Course</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Grade</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Class Average</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Standing</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
-                {courseGrades.map((course, index) => (
-                  <tr key={index}>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
-                      {course.course}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                      {course.grade}%
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                      {course.average}%
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                        course.grade > course.average + 5
-                          ? 'bg-success-100 text-success-800 dark:bg-success-900 dark:text-success-200'
-                          : course.grade < course.average
-                          ? 'bg-warning-100 text-warning-800 dark:bg-warning-900 dark:text-warning-200'
-                          : 'bg-primary-100 text-primary-800 dark:bg-primary-900 dark:text-primary-200'
-                      }`}>
-                        {course.grade > course.average + 5 ? 'Above Average' : 
-                         course.grade < course.average ? 'Below Average' : 'Average'}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </Card>
+      {/* Detailed report not available for assignment-level grades */}
     </motion.div>
   );
 };
