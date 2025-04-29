@@ -3,8 +3,6 @@ import { useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import Card from '../../components/ui/Card';
 
-// Removed unused Button and icon imports
-
 const CourseDetails = () => {
   const { id } = useParams();
   const [course, setCourse] = useState<any>(null);
@@ -33,6 +31,17 @@ const CourseDetails = () => {
       exit={{ opacity: 0 }}
     >
       <div className="mb-6">
+        <div className="w-full h-48 md:h-64 lg:h-80 rounded-lg overflow-hidden mb-6">
+          {course.thumbnail_url ? (
+            <img 
+              src={`${API_URL}${course.thumbnail_url}`} 
+              alt={course.title} 
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <div className="w-full h-full bg-gray-200 dark:bg-gray-700" />
+          )}
+        </div>
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{course.title}</h1>
         <p className="mt-2 text-gray-600 dark:text-gray-400">Instructor: {course.instructor}</p>
       </div>

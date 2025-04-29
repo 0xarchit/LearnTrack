@@ -231,7 +231,7 @@ const ManageCourses = () => {
                   <tr key={course.id}>
                     <td className="px-6 py-4 whitespace-nowrap">
                       {course.thumbnail_url ? (
-                        <img src={course.thumbnail_url} alt={course.title} className="h-12 w-12 object-cover rounded" />
+                        <img src={`${API_URL}${course.thumbnail_url}`} alt={course.title} className="h-12 w-12 object-cover rounded" />
                       ) : <div className="h-12 w-12 bg-gray-200 dark:bg-gray-700 rounded" />}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
