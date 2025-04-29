@@ -7,6 +7,9 @@ from datetime import datetime
 import os, sqlite3
 from passlib.context import CryptContext
 
+# Set maximum upload size to 5MB (5 * 1024 * 1024 bytes)
+MAX_UPLOAD_SIZE = 5 * 1024 * 1024
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(BASE_DIR, 'database.db')
 
@@ -19,6 +22,7 @@ def init_db():
     conn = get_db_connection()
     c = conn.cursor()
     c.execute('''
+
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT NOT NULL,
@@ -28,6 +32,7 @@ def init_db():
         )
     ''')
     c.execute('''
+
         CREATE TABLE IF NOT EXISTS courses (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             title TEXT,
@@ -37,6 +42,7 @@ def init_db():
         )
     ''')
     c.execute('''
+
         CREATE TABLE IF NOT EXISTS assignments (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             title TEXT,
@@ -46,6 +52,7 @@ def init_db():
         )
     ''')
     c.execute('''
+
         CREATE TABLE IF NOT EXISTS materials (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             title TEXT,
@@ -55,6 +62,7 @@ def init_db():
         )
     ''')
     c.execute('''
+
         CREATE TABLE IF NOT EXISTS grades (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER,
@@ -63,6 +71,7 @@ def init_db():
         )
     ''')
     c.execute('''
+
         CREATE TABLE IF NOT EXISTS enrollments (
             user_id INTEGER,
             course_id INTEGER,
@@ -70,6 +79,7 @@ def init_db():
         )
     ''')
     c.execute('''
+
         CREATE TABLE IF NOT EXISTS notifications (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             message TEXT NOT NULL,
@@ -79,6 +89,7 @@ def init_db():
         )
     ''')
     c.execute('''
+
         CREATE TABLE IF NOT EXISTS submissions (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER,
@@ -144,9 +155,10 @@ app = FastAPI()
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["https://learntrack.pages.dev"],
     allow_methods=["*"],
     allow_headers=["*"],
+    max_age=86400,
 )
 
 app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
@@ -402,11 +414,16 @@ async def create_material(
     type: str = Form(...),
     file: UploadFile = File(...)
 ):
-    file_location = os.path.join(UPLOAD_DIR, file.filename)
+    # Check file size (5MB limit)
     contents = await file.read()
+    if len(contents) > MAX_UPLOAD_SIZE:
+        raise HTTPException(status_code=413, detail=f"File size exceeds the {MAX_UPLOAD_SIZE / (1024 * 1024)}MB limit")
+    
+    file_location = os.path.join(UPLOAD_DIR, file.filename)
     with open(file_location, "wb") as f:
         f.write(contents)
     url = f"/uploads/{file.filename}"
+    
     conn = get_db_connection(); c = conn.cursor()
     c.execute(
         'INSERT INTO materials (title, course_id, type, url) VALUES (?, ?, ?, ?)',
