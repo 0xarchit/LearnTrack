@@ -147,7 +147,7 @@ const ManageMaterials = () => {
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">{mat.title}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{mat.type}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600 dark:text-blue-400">
-                    <a href={mat.url} target="_blank" rel="noopener noreferrer">Download</a>
+                    <a href={`${API_URL}${mat.url}`} target="_blank" rel="noopener noreferrer" download>Download</a>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <Button variant="ghost" size="sm" className="text-error-600" onClick={() => handleDelete(mat.id)}>

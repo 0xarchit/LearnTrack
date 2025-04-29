@@ -143,7 +143,7 @@ const Materials = () => {
                       )}
                       <span className="ml-2 text-sm text-gray-500 dark:text-gray-400">{material.size}</span>
                     </div>
-                    <a href={material.url} target="_blank" rel="noopener noreferrer" download title='download'>
+                    <a href={`${API_URL}${material.url}`} target="_blank" rel="noopener noreferrer" download title='download'>
                       <Button variant="ghost" size="sm">
                         <Download size={18} />
                       </Button>
@@ -201,7 +201,7 @@ const Materials = () => {
                         {material.lastUpdated}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <a href={material.url} target="_blank" rel="noopener noreferrer" download title='download'>
+                        <a href={`${API_URL}${material.url}`} target="_blank" rel="noopener noreferrer" download title='download'>
                           <Button variant="ghost" size="sm">
                             <Download size={16} />
                           </Button>

@@ -49,7 +49,7 @@ export default function StudentMaterials() {
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{material.type}</p>
               </div>
             </div>
-            <a href={`${API_URL}${material.url}`} title = 'download' download target='_blank'>
+            <a href={`${API_URL}${material.url}`} title='download' download target='_blank'>
               <Button variant="ghost" size="sm">
                 <Download size={16} />
               </Button>
