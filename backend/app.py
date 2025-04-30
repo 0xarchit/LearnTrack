@@ -155,7 +155,7 @@ app = FastAPI()
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://learntrack.pages.dev"],
+    allow_origins=["https://learntrack.pages.dev", "http://localhost:5173"],
     allow_methods=["*"],
     allow_headers=["*"],
     max_age=86400,

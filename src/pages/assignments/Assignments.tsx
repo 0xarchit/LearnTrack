@@ -70,9 +70,10 @@ const Assignments = () => {
             <p className="mt-1 text-gray-600 dark:text-gray-400">Track and manage your course assignments</p>
           </div>
           
-          <div className="flex items-center space-x-4">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-4 mb-4">
             <Button
               variant="outline"
+              size="sm"
               leftIcon={<Filter size={18} />}
               onClick={() => setFilter('all')}
               className={filter === 'all' ? 'bg-primary-50 text-primary-600 border-primary-200' : ''}
@@ -81,6 +82,7 @@ const Assignments = () => {
             </Button>
             <Button
               variant="outline"
+              size="sm"
               onClick={() => setFilter('pending')}
               className={filter === 'pending' ? 'bg-warning-50 text-warning-600 border-warning-200' : ''}
             >
@@ -88,6 +90,7 @@ const Assignments = () => {
             </Button>
             <Button
               variant="outline"
+              size="sm"
               onClick={() => setFilter('in-progress')}
               className={filter === 'in-progress' ? 'bg-primary-50 text-primary-600 border-primary-200' : ''}
             >
@@ -95,6 +98,7 @@ const Assignments = () => {
             </Button>
             <Button
               variant="outline"
+              size="sm"
               onClick={() => setFilter('completed')}
               className={filter === 'completed' ? 'bg-success-50 text-success-600 border-success-200' : ''}
             >
