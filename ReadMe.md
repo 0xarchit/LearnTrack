@@ -5,7 +5,6 @@
 ## Live Demo
 
 - **Frontend**: [https://learntrack.pages.dev](https://learntrack.pages.dev) - deployed on Cloudflare Pages
-- **Backend**: [https://learntrack-tunnel.onrender.com](https://learntrack-tunnel.onrender.com/docs) - deployed using Docker on Render
 
 ---
 
