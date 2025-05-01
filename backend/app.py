@@ -150,7 +150,9 @@ def init_db():
 UPLOAD_DIR = os.path.join(BASE_DIR, 'uploads')
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
-app = FastAPI()
+
+app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
+
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 app.add_middleware(
     CORSMiddleware,
@@ -510,7 +512,15 @@ def change_password(user_id: int, pwd: PasswordUpdate):
 
 @app.delete("/api/users/{user_id}")
 def delete_user(user_id: int):
-    conn = get_db_connection(); c = conn.cursor(); c.execute('DELETE FROM users WHERE id = ?', (user_id,)); conn.commit(); conn.close()
+    conn = get_db_connection(); c = conn.cursor()
+    # Prevent deletion of demo users by email
+    row = c.execute('SELECT email FROM users WHERE id = ?', (user_id,)).fetchone()
+    if not row:
+        conn.close(); raise HTTPException(status_code=404, detail="User not found")
+    if row['email'] in ('admin@0xarchit.is-a.dev', 'faculty@0xarchit.is-a.dev', 'student@0xarchit.is-a.dev'):
+        conn.close(); raise HTTPException(status_code=400, detail="Cannot delete demo user")
+    c.execute('DELETE FROM users WHERE id = ?', (user_id,))
+    conn.commit(); conn.close()
     return {"success": True}
 
 @app.get("/api/courses/requests")
