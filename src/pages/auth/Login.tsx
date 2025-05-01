@@ -134,6 +134,16 @@ const Login: React.FC = () => {
           Sign up
         </Link>
       </p>
+
+      {/* Demo login credentials for quick testing */}
+      <div className="mt-8 bg-gray-50 dark:bg-gray-900 p-4 rounded-md">
+        <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Demo Logins</h3>
+        <ul className="space-y-1 text-sm text-gray-600 dark:text-gray-400">
+          <li><strong>Student:</strong> student@0xarchit.is-a.dev / 12345678</li>
+          <li><strong>Faculty:</strong> faculty@0xarchit.is-a.dev / 12345678</li>
+          <li><strong>Admin:</strong> admin@0xarchit.is-a.dev / 12345678</li>
+        </ul>
+      </div>
     </motion.div>
   );
 };

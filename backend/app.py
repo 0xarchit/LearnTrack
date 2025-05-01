@@ -7,7 +7,6 @@ from datetime import datetime
 import os, sqlite3
 from passlib.context import CryptContext
 
-# Set maximum upload size to 5MB (5 * 1024 * 1024 bytes)
 MAX_UPLOAD_SIZE = 5 * 1024 * 1024
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))

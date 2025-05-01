@@ -250,18 +250,22 @@ erDiagram
         string department
         string joinDate
     }
-    
+
     COURSES {
         int id PK
         string title
         int instructor_id FK
-        string instructor
         string description
         string status
         string duration
         string thumbnail_url
     }
-    
+
+    ENROLLMENTS {
+        int user_id PK,FK
+        int course_id PK,FK
+    }
+
     ASSIGNMENTS {
         int id PK
         string title
@@ -270,7 +274,7 @@ erDiagram
         string due_date
         int max_score
     }
-    
+
     MATERIALS {
         int id PK
         string title
@@ -278,19 +282,24 @@ erDiagram
         string type
         string url
     }
-    
+
+    SUBMISSIONS {
+        int id PK
+        int user_id FK
+        int assignment_id FK
+        string file_url
+        string description
+        string submitted_at
+        int grade
+    }
+
     GRADES {
         int id PK
         int user_id FK
         int course_id FK
         int grade
     }
-    
-    ENROLLMENTS {
-        int user_id PK,FK
-        int course_id PK,FK
-    }
-    
+
     NOTIFICATIONS {
         int id PK
         string message
@@ -298,17 +307,7 @@ erDiagram
         string target_role
         string created_at
     }
-    
-    SUBMISSIONS {
-        int id PK
-        int user_id FK
-        int assignment_id FK
-        string file_url
-        string submitted_at
-        int grade
-        string description
-    }
-    
+
     USERS ||--o{ COURSES : teaches
     USERS ||--o{ ENROLLMENTS : enrolls
     COURSES ||--o{ ENROLLMENTS : has
