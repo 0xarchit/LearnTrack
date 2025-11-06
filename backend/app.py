@@ -153,10 +153,15 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# Support long passwords safely by preferring bcrypt_sha256 while still
+# verifying existing bcrypt hashes. This avoids 72-byte limit issues.
+pwd_context = CryptContext(
+    schemes=["bcrypt_sha256", "bcrypt"],
+    deprecated="auto",
+)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://learntrack.pages.dev", "http://localhost:5173"],
+    allow_origins=["https://learntrack.pages.dev", "http://localhost:5173", "https://learntrack.0xarchit.is-a.dev"],
     allow_methods=["*"],
     allow_headers=["*"],
     max_age=86400,
@@ -281,9 +286,32 @@ class AssignmentOut(BaseModel):
     due_date: str
     max_score: int
 
+def seed_demo_users():
+    """Create demo users if they don't exist yet."""
+    demo_users = [
+        {"name": "Admin", "email": "admin@0xarchit.is-a.dev", "password": "12345678", "role": "admin"},
+        {"name": "Faculty", "email": "faculty@0xarchit.is-a.dev", "password": "12345678", "role": "faculty"},
+        {"name": "Student", "email": "student@0xarchit.is-a.dev", "password": "12345678", "role": "student"},
+    ]
+    conn = get_db_connection(); c = conn.cursor()
+    try:
+        for du in demo_users:
+            exists = c.execute('SELECT 1 FROM users WHERE email = ?', (du["email"],)).fetchone()
+            if not exists:
+                hashed = pwd_context.hash(du["password"])
+                c.execute(
+                    'INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)',
+                    (du["name"], du["email"], hashed, du["role"]) 
+                )
+        conn.commit()
+    finally:
+        conn.close()
+
 @app.on_event("startup")
 def on_startup():
     init_db()
+    # Ensure demo users exist for quick testing/login
+    seed_demo_users()
 
 @app.post("/api/register", response_model=UserOut, status_code=201)
 def register(user: UserIn):
@@ -313,8 +341,23 @@ def login(login: LoginIn):
         (login.email, login.role)
     )
     row = c.fetchone()
-    conn.close()
-    if not row or not pwd_context.verify(login.password, row['password']):
+    # Don't close the connection yet; we may need it to upgrade the hash
+    try:
+        if not row:
+            valid = False
+            new_hash = None
+        else:
+            valid, new_hash = pwd_context.verify_and_update(login.password, row['password'])
+            # If Passlib suggests an upgrade (e.g., moving from bcrypt -> bcrypt_sha256), persist it
+            if valid and new_hash:
+                c.execute('UPDATE users SET password = ? WHERE id = ?', (new_hash, row['id']))
+                conn.commit()
+    except Exception:
+        # Treat backend verification errors (e.g., bcrypt 72-byte limit) as invalid credentials
+        valid = False
+    finally:
+        conn.close()
+    if not valid:
         raise HTTPException(status_code=401, detail="Invalid credentials or role")
     data = dict(row)
     data.pop('password', None)
